@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#Api generated files
+api/last_model_date.pickle
+api/trained_model.joblib
+
+classifier/processed_egvs.csv
+
+aws.xml
