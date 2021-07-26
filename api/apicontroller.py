@@ -27,7 +27,9 @@ TRAINING_MODEL = False
 @app.route('/')
 def default():
     return "<html><head><style>h1 {text-align: center;}p {text-align: center;}div {text-align: center;}body " \
-           "{background-color: #32a852;}body {color: white;}</style></head><body><h1>Gluco - Doc API</h1></body></html>"
+           "{background-color: #32a852;}body {color: white; display: flex; justify-content: center;" \
+           "align-items: center; font-family: Helvetica}" \
+           "</style></head><body><h1>Gluco - Doc API</h1></body></html>"
 
 
 @app.route('/VerifyModelIntegrity/<string:access_token>/')
@@ -75,7 +77,7 @@ def verify_model_integrity(access_token):
     return 'success'
 
 
-@app.route('/Prediction/<string:weekday>/<string:time>', methods=['POST', 'GET'])
+@app.route('/prediction/<string:weekday>/<string:time>', methods=['POST', 'GET'])
 def date_time_prediction(weekday, time):
 
     if not os.path.exists('trained_model.joblib'):
@@ -91,7 +93,7 @@ def date_time_prediction(weekday, time):
     if time_number < 0 or time_number > 24:
         raise BadRequest('Time (' + time + ') out of range')
 
-    time = time[1] if len(time) > 1 else time
+    time = time[1] if len(time) > 1 and time[0] == 0 else time
 
     classified_model = load('trained_model.joblib')
     result = classified_model.predict([[str(weekday), str(time)]])
