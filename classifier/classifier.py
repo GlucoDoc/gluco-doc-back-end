@@ -1,26 +1,29 @@
 import os
-
+import pickle
+import io
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
 from sklearn.metrics import classification_report
-from joblib import dump
+
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def train_model():
+def train_model(csv_string):
     print('Training Model...')
 
-    data = pd.read_csv(ROOT_DIR + '/processed_egvs.csv')
+    csv_io = io.StringIO(csv_string)
+
+    data = pd.read_csv(csv_io)
 
     X = data[['weekday', 'time']]  # Features
     y = data['state']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4)
 
-    #print(X_test.head(5))
+    # print(X_test.head(5))
     # Create a Gaussian Classifier
     model = RandomForestClassifier(n_estimators=100)
 
@@ -35,9 +38,10 @@ def train_model():
     #
     # print('\n', classification_report(y_test, y_predictions, zero_division=0))
 
-    dump(model, 'trained_model.joblib')
-    print('\nFinished training and dumping Model...')
+    print('\nFinished training!')
+
+    return model
 
 
-if __name__ == '__main__':
-    train_model()
+# if __name__ == '__main__':
+#     train_model()

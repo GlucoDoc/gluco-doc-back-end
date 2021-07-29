@@ -1,90 +1,86 @@
 import datetime
 import os
-
-from joblib import load
-
-from datetime import datetime, timedelta
-
-from flask import Flask
-from flask import request
 import http.client
-# Loading model
-from werkzeug.exceptions import BadRequest
-from classifier.data_processor import process_data
-from classifier.classifier import train_model
 import pickle
 import threading
+import json
 
-# print("Loading model from: {}".format('trained_model.joblib'))
-# inference_lda = load('trained_model.joblib')
+from datetime import datetime, timedelta
+from flask import Flask
+from werkzeug.exceptions import BadRequest
+
+from classifier.data_processor import process_data
+from classifier.classifier import train_model
+from notifications.notification import send_notification
+from notifications.email_util import get_user_email, send_email_alert
+from models.user import User
 
 # Creation of the Flask app
 app = Flask(__name__)
 
-TRAINING_MODEL = False
+DEXCOM_URI = "sandbox-api.dexcom.com"
 
 
 @app.route('/')
 def default():
-    return "<html><head><style>h1 {text-align: center;}p {text-align: center;}div {text-align: center;}body " \
-           "{background-color: #32a852;}body {color: white; display: flex; justify-content: center;" \
-           "align-items: center; font-family: Helvetica}" \
-           "</style></head><body><h1>Gluco - Doc API</h1></body></html>"
+    html_file = open("default_api_page.html", "r")
+    return html_file.read()
 
 
-@app.route('/VerifyModelIntegrity/<string:access_token>/')
-def verify_model_integrity(access_token):
+@app.route('/updateUser/<string:access_token>/<string:user_id>/<string:alexa_user_access_token>')
+def update_user(access_token, user_id, alexa_user_access_token):
+
+    def train_m(user):
+        conn = http.client.HTTPSConnection(DEXCOM_URI)
+
+        headers = {
+            'authorization': "Bearer " + access_token
+        }
+
+        start_date = (datetime.now() - timedelta(91)).isoformat()
+        end_date = (datetime.now() - timedelta(1)).isoformat()
+
+        conn.request("GET", "/v2/users/self/egvs?startDate=" + start_date + "&endDate=" + end_date, headers=headers)
+
+        res = conn.getresponse()
+        json_data_string = res.read().decode("utf-8")
+
+        user.model = pickle.dumps(train_model(process_data(json_data_string)))
+        user.last_model_date = datetime.now()
+
+        pickle.dump(user, open('user.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
     def train_model_thread():
 
-        print('hellooo im the thread!')
+        user_email = get_user_email(alexa_user_access_token)
+        user = User(user_id, None, None, user_email)
 
         last_model_date = datetime.now()
 
-        if os.path.exists('last_model_date.pickle'):
-            last_model_date = pickle.load(open('last_model_date.pickle', 'rb'))
+        if os.path.exists('user.pickle'):
+            user = pickle.load(open("user.pickle", "rb"))
 
-        if (not os.path.exists('last_model_date.pickle')) or (not os.path.exists('trained_model.joblib')) or\
-                ((datetime.now() - last_model_date) >= timedelta(1)):
+            if datetime.now() - user.last_model_date >= timedelta(1):
+                train_m(user)
 
-            global TRAINING_MODEL
-
-            TRAINING_MODEL = True
-
-            conn = http.client.HTTPSConnection("sandbox-api.dexcom.com")
-
-            headers = {
-                'authorization': "Bearer " + access_token
-            }
-
-            start_date = (datetime.now() - timedelta(91)).isoformat()
-            end_date = (datetime.now() - timedelta(1)).isoformat()
-
-            conn.request("GET", "/v2/users/self/egvs?startDate=" + start_date + "&endDate=" + end_date, headers=headers)
-
-            res = conn.getresponse()
-            json_data_string = res.read().decode("utf-8")
-
-            pickle.dump(datetime.now(), open('last_model_date.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-            process_data(json_data_string)
-            train_model()
-
-            TRAINING_MODEL = False
+        else:
+            train_m(user)
 
     th = threading.Thread(target=train_model_thread)
     th.start()
 
-    return 'success'
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/prediction/<string:weekday>/<string:time>', methods=['POST', 'GET'])
-def date_time_prediction(weekday, time):
-
-    if not os.path.exists('trained_model.joblib'):
+@app.route('/prediction/<string:weekday>/<string:time>/<string:user_id>', methods=['POST', 'GET'])
+def date_time_prediction(weekday, time, user_id):
+    if not os.path.exists('user.pickle'):
         return {
             'prediction': None,
             'training_model': True
         }
+
+    user = pickle.load(open("user.pickle", 'rb'))
 
     weekday_number = int(weekday)
     time_number = int(time)
@@ -95,13 +91,32 @@ def date_time_prediction(weekday, time):
 
     time = time[1] if len(time) > 1 and time[0] == 0 else time
 
-    classified_model = load('trained_model.joblib')
+    classified_model = pickle.loads(user.model)
     result = classified_model.predict([[str(weekday), str(time)]])
 
     return {
         'prediction': result[0],
         'training_model': False
     }
+
+
+@app.route('/notifications', methods=['POST', 'GET'])
+def send_notifications():
+    def notification_thread():
+        if os.path.exists('user.pickle'):
+            user = pickle.load(open("user.pickle", "rb"))
+
+            classified_model = pickle.loads(user.model)
+            result = classified_model.predict([[str(datetime.now().weekday()), str(datetime.now().hour)]])
+
+            if result[0] == "Hypoglycemia" or result[0] == "Hyperglycemia":
+                send_email_alert(user.user_email, result[0])
+                send_notification(user.user_id)
+
+    th = threading.Thread(target=notification_thread)
+    th.start()
+
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
 @app.errorhandler(BadRequest)

@@ -1,6 +1,8 @@
 import json
 import os
-
+import csv
+import io
+import pickle
 from dateutil import parser
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,9 +15,10 @@ def process_data(json_string_data):
 
     loaded_json = json.loads(json_string_data)
 
-    export = open(new_file, "w")
-    export.write("\"weekday\",\"time\",\"gl\",\"state\"\n")
+    var_file = io.StringIO()
+    var_file.write("\"weekday\",\"time\",\"gl\",\"state\"\n")
 
+    # see dexcom api documentation, different values are sent in the egvs
     value_to_use = "value"
 
     for egv in loaded_json['egvs']:
@@ -32,7 +35,9 @@ def process_data(json_string_data):
             else:
                 return "normal"
 
-        export.write(str(this_datetime.weekday()) + "," + str(this_datetime.hour) + "," + str(
+        var_file.write(str(this_datetime.weekday()) + "," + str(this_datetime.hour) + "," + str(
             egv[value_to_use]) + "," + get_class() + "\n")
 
     print("Done processing json to csv!")
+
+    return var_file.getvalue()
