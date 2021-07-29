@@ -1,4 +1,4 @@
-FROM jupyter/scipy-notebook
+FROM python:3.9-slim-buster
 
 ENV MODEL_DIR=/
 ENV MODEL_FILE=trained_model.joblib
@@ -6,7 +6,9 @@ ENV MODEL_FILE=trained_model.joblib
 COPY requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
 
-COPY classifier/classifier.py ./classifier.py
-COPY api/apicontroller.py ./apicontroller.py
+CMD mkdir classifier
+CMD mkdir apicontroller
 
-CMD docker run -it -p 5000:5000 classifier-img python3 apicontroller.py
+COPY classifier/data_processor.py ./classifier/data_processor.py
+COPY classifier/classifier.py ./classifier/classifier.py
+COPY api/apicontroller.py ./apicontroller.py
