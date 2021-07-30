@@ -18,7 +18,11 @@ from models.user import User
 # Creation of the Flask app
 app = Flask(__name__)
 
-DEXCOM_URI = "sandbox-api.dexcom.com"
+os.environ['DEXCOM_URI'] = "sandbox-api.dexcom.com"
+os.environ['GLUCODOC_EMAIL_PASSWORD'] = "glucodoc2016"
+
+os.environ['HYPERGLYCEMIA_THRESHOLD'] = "180"
+os.environ['HYPOGLYCEMIA_THRESHOLD'] = "70"
 
 
 @app.route('/')
@@ -29,9 +33,8 @@ def default():
 
 @app.route('/updateUser/<string:access_token>/<string:user_id>/<string:alexa_user_access_token>')
 def update_user(access_token, user_id, alexa_user_access_token):
-
     def train_m(user):
-        conn = http.client.HTTPSConnection(DEXCOM_URI)
+        conn = http.client.HTTPSConnection(os.getenv('DEXCOM_URI'))
 
         headers = {
             'authorization': "Bearer " + access_token
@@ -96,7 +99,11 @@ def date_time_prediction(weekday, time, user_id):
 
     return {
         'prediction': result[0],
-        'training_model': False
+        'training_model': False,
+        'thresholds': {
+            'hypoglycemia': os.getenv('HYPOGLYCEMIA_THRESHOLD'),
+            'hyperglycemia': os.getenv('HYPERGLYCEMIA_THRESHOLD'),
+        }
     }
 
 
@@ -109,7 +116,7 @@ def send_notifications():
             classified_model = pickle.loads(user.model)
             result = classified_model.predict([[str(datetime.now().weekday()), str(datetime.now().hour)]])
 
-            if result[0] == "Hypoglycemia" or result[0] == "Hyperglycemia":
+            if result[0] == "hypoglycemia" or result[0] == "hyperglycemia":
                 send_email_alert(user.user_email, result[0])
                 send_notification(user.user_id)
 

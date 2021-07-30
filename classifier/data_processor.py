@@ -28,10 +28,10 @@ def process_data(json_string_data):
         def get_class():
             if (loaded_json['unit'] == "mg/dL" and float(egv[value_to_use]) < 70) or (
                     loaded_json['unit'] == "mmol/L" and float(egv[value_to_use]) < 3.9):
-                return "Hypoglycemia"
+                return "hypoglycemia"
             elif (loaded_json['unit'] == "mg/dL" and float(egv[value_to_use]) > 179) or (
                     loaded_json['unit'] == "mmol/L" and float(egv[value_to_use]) > 9.9):
-                return "Hyperglycemia"
+                return "hyperglycemia"
             else:
                 return "normal"
 
