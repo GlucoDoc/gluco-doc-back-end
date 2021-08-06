@@ -107,14 +107,14 @@ def date_time_prediction(weekday, time, user_id):
     }
 
 
-@app.route('/notifications/<string:weekday>/<string:time>', methods=['POST', 'GET'])
-def send_notifications_params(weekday, time):
-    send_notifications(weekday, time)
+@app.route('/notifications/<string:state>', methods=['POST', 'GET'])
+def send_notifications_params(state):
+    send_notifications(state)
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
 @app.route('/notifications', methods=['POST', 'GET'])
-def send_notifications(weekday=None, time=None):
+def send_notifications(state=None):
     def notification_thread():
         if os.path.exists('user.pickle'):
             user = pickle.load(open("user.pickle", "rb"))
@@ -122,8 +122,8 @@ def send_notifications(weekday=None, time=None):
             classified_model = pickle.loads(user.model)
             result = None
 
-            if weekday is not None and time is not None:
-                result = classified_model.predict([[weekday, time]])
+            if state is not None:
+                result = [str(state)]
             else:
                 result = classified_model.predict([[str(datetime.now().weekday()), str(datetime.now().hour)]])
 
