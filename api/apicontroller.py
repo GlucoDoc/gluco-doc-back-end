@@ -107,14 +107,19 @@ def date_time_prediction(weekday, time, user_id):
     }
 
 
-@app.route('/notifications', methods=['POST', 'GET'])
-def send_notifications():
+@app.route('/notifications/<string:weekday>/<string:time>', methods=['POST', 'GET'])
+def send_notifications(weekday, time):
     def notification_thread():
         if os.path.exists('user.pickle'):
             user = pickle.load(open("user.pickle", "rb"))
 
             classified_model = pickle.loads(user.model)
-            result = classified_model.predict([[str(datetime.now().weekday()), str(datetime.now().hour)]])
+            result = None
+
+            if weekday != "None" and time != "None":
+                result = classified_model.predict([[weekday, time]])
+            else:
+                result = classified_model.predict([[str(datetime.now().weekday()), str(datetime.now().hour)]])
 
             if result[0] == "hypoglycemia" or result[0] == "hyperglycemia":
                 send_email_alert(user.user_email, result[0])
