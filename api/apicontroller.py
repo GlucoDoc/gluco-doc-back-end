@@ -5,7 +5,6 @@ import pickle
 import ssl
 import threading
 import json
-import pymongo
 
 from datetime import datetime, timedelta
 from flask import Flask
@@ -35,7 +34,11 @@ def default():
 
 @app.route('/updateUser/<string:access_token>/<string:user_id>/<string:alexa_user_access_token>')
 def update_user(access_token, user_id, alexa_user_access_token):
-    def train_m(user):
+
+    gluco_doc_db = get_database()
+    user_collection = gluco_doc_db['User']
+
+    def train_m(user, is_new_user):
         conn = http.client.HTTPSConnection(os.getenv('DEXCOM_URI'))
 
         headers = {
@@ -53,26 +56,34 @@ def update_user(access_token, user_id, alexa_user_access_token):
         user.model = pickle.dumps(train_model(process_data(json_data_string)))
         user.last_model_date = datetime.now()
 
-        pickle.dump(user, open('user.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-        gluco_doc_db = get_database()
-        user_model_collection = gluco_doc_db['UserModel']
-        user_model_collection.insert_one(user.__dict__)
+        #pickle.dump(user, open('user.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
+        if is_new_user:
+            print("new user!")
+            user_collection.insert_one(user.__dict__)
+        else:
+            print("updated user!")
+            user_query = {"user_id": user.user_id}
+            user_update = {"$set": user.__dict__}
+            user_collection.update_one(user_query, user_update)
 
     def train_model_thread():
 
         user_email = get_user_email(alexa_user_access_token)
         user = User(user_id, None, None, user_email)
 
-        last_model_date = datetime.now()
+        user_query = {"user_id": user_id}
 
-        if os.path.exists('user.pickle'):
-            user = pickle.load(open("user.pickle", "rb"))
+        result = user_collection.find(user_query)
 
-            if datetime.now() - user.last_model_date >= timedelta(1):
-                train_m(user)
+        if any(u['user_id'] == user_id for u in result):
+            result.rewind()
+            user_dict = result.next()
 
+            if datetime.now() - user_dict['last_model_date'] >= timedelta(1):
+                train_m(user, False)
         else:
-            train_m(user)
+            train_m(user, True)
 
     th = threading.Thread(target=train_model_thread)
     th.start()
@@ -82,34 +93,43 @@ def update_user(access_token, user_id, alexa_user_access_token):
 
 @app.route('/prediction/<string:weekday>/<string:time>/<string:user_id>', methods=['POST', 'GET'])
 def date_time_prediction(weekday, time, user_id):
-    if not os.path.exists('user.pickle'):
+
+    gluco_doc_db = get_database()
+    user_collection = gluco_doc_db['User']
+
+    user_query = {"user_id": user_id}
+    result = user_collection.find(user_query)
+
+    if any(u['user_id'] == user_id for u in result):
+        result.rewind()
+        user_dict = result.next()
+        user = User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'])
+
+        weekday_number = int(weekday)
+        time_number = int(time)
+        if weekday_number < 0 or weekday_number > 7:
+            raise BadRequest('Weekday (' + weekday + ') out of range')
+        if time_number < 0 or time_number > 24:
+            raise BadRequest('Time (' + time + ') out of range')
+
+        time = time[1] if len(time) > 1 and time[0] == 0 else time
+
+        classified_model = pickle.loads(user.model)
+        result = classified_model.predict([[str(weekday), str(time)]])
+
+        return {
+            'prediction': result[0],
+            'training_model': False,
+            'thresholds': {
+                'hypoglycemia': os.getenv('HYPOGLYCEMIA_THRESHOLD'),
+                'hyperglycemia': os.getenv('HYPERGLYCEMIA_THRESHOLD'),
+            }
+        }
+    else:
         return {
             'prediction': None,
             'training_model': True
         }
-
-    user = pickle.load(open("user.pickle", 'rb'))
-
-    weekday_number = int(weekday)
-    time_number = int(time)
-    if weekday_number < 0 or weekday_number > 7:
-        raise BadRequest('Weekday (' + weekday + ') out of range')
-    if time_number < 0 or time_number > 24:
-        raise BadRequest('Time (' + time + ') out of range')
-
-    time = time[1] if len(time) > 1 and time[0] == 0 else time
-
-    classified_model = pickle.loads(user.model)
-    result = classified_model.predict([[str(weekday), str(time)]])
-
-    return {
-        'prediction': result[0],
-        'training_model': False,
-        'thresholds': {
-            'hypoglycemia': os.getenv('HYPOGLYCEMIA_THRESHOLD'),
-            'hyperglycemia': os.getenv('HYPERGLYCEMIA_THRESHOLD'),
-        }
-    }
 
 
 @app.route('/notifications/<string:state>', methods=['POST', 'GET'])
@@ -121,8 +141,13 @@ def send_notifications_params(state):
 @app.route('/notifications', methods=['POST', 'GET'])
 def send_notifications(state=None):
     def notification_thread():
-        if os.path.exists('user.pickle'):
-            user = pickle.load(open("user.pickle", "rb"))
+
+        gluco_doc_db = get_database()
+        user_collection = gluco_doc_db['User']
+
+        for user_dict in user_collection:
+
+            user = User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'])
 
             classified_model = pickle.loads(user.model)
             result = None
