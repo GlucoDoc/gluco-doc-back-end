@@ -2,8 +2,10 @@ import datetime
 import os
 import http.client
 import pickle
+import ssl
 import threading
 import json
+import pymongo
 
 from datetime import datetime, timedelta
 from flask import Flask
@@ -142,6 +144,18 @@ def send_notifications(state=None):
 @app.errorhandler(BadRequest)
 def handle_bad_request(e):
     return e, 400
+
+
+def get_database():
+    # Provide the mongodb atlas url to connect python to mongodb using pymongo
+    CONNECTION_STRING = "mongodb+srv://glucoDoc:mUmg9B3PTcJuE988@glucodoc.f8dds.mongodb.net/GlucoDoc?retryWrites=true&w=majority"
+
+    # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
+    from pymongo import MongoClient
+    client = MongoClient(CONNECTION_STRING, ssl_cert_reqs=ssl.CERT_NONE)
+
+    # Create the database for our example (we will use the same database throughout the tutorial
+    return client['GlucoDoc']
 
 
 if __name__ == "__main__":
