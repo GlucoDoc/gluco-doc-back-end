@@ -55,7 +55,7 @@ def update_user(access_token, user_id, alexa_user_access_token):
 
         pickle.dump(user, open('user.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
         gluco_doc_db = get_database()
-        user_model_collection = gluco_doc_db['UserModel']
+        user_model_collection = gluco_doc_db['User']
         user_model_collection.insert_one(user.__dict__)
 
     def train_model_thread():
