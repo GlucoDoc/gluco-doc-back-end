@@ -34,7 +34,6 @@ def default():
 
 @app.route('/updateUser/<string:access_token>/<string:user_id>/<string:alexa_user_access_token>')
 def update_user(access_token, user_id, alexa_user_access_token):
-
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
 
@@ -56,13 +55,9 @@ def update_user(access_token, user_id, alexa_user_access_token):
         user.model = pickle.dumps(train_model(process_data(json_data_string)))
         user.last_model_date = datetime.now()
 
-        #pickle.dump(user, open('user.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-
         if is_new_user:
-            print("new user!")
             user_collection.insert_one(user.__dict__)
         else:
-            print("updated user!")
             user_query = {"user_id": user.user_id}
             user_update = {"$set": user.__dict__}
             user_collection.update_one(user_query, user_update)
@@ -93,7 +88,6 @@ def update_user(access_token, user_id, alexa_user_access_token):
 
 @app.route('/prediction/<string:weekday>/<string:time>/<string:user_id>', methods=['POST', 'GET'])
 def date_time_prediction(weekday, time, user_id):
-
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
 
