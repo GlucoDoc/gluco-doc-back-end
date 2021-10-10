@@ -15,6 +15,7 @@ from classifier.classifier import train_model
 from notifications.notification import send_notification
 from notifications.email_util import get_user_email, send_email_alert
 from models.user import User
+from flask import request
 
 # Creation of the Flask app
 app = Flask(__name__)
@@ -36,6 +37,7 @@ def default():
 def update_user(access_token, user_id, alexa_user_access_token):
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
+    user_locale = request.headers['locale']
 
     def train_m(user, is_new_user):
         conn = http.client.HTTPSConnection(os.getenv('DEXCOM_URI'))
@@ -65,7 +67,7 @@ def update_user(access_token, user_id, alexa_user_access_token):
     def train_model_thread():
 
         user_email = get_user_email(alexa_user_access_token)
-        user = User(user_id, None, None, user_email)
+        user = User(user_id, None, None, user_email, user_locale)
 
         user_query = {"user_id": user_id}
 
@@ -97,7 +99,8 @@ def date_time_prediction(weekday, time, user_id):
     if any(u['user_id'] == user_id for u in result):
         result.rewind()
         user_dict = result.next()
-        user = User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'])
+        user = User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'],
+                    user_dict['locale'])
 
         weekday_number = int(weekday)
         time_number = int(time)
@@ -138,10 +141,11 @@ def send_notifications(state=None):
 
         gluco_doc_db = get_database()
         user_collection = gluco_doc_db['User']
+        cursor = user_collection.find({})
 
-        for user_dict in user_collection:
+        for user_dict in cursor:
 
-            user = User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'])
+            user = User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'], user_dict['locale'])
 
             classified_model = pickle.loads(user.model)
             result = None
@@ -154,7 +158,7 @@ def send_notifications(state=None):
             print(result)
 
             if result[0] == "hypoglycemia" or result[0] == "hyperglycemia":
-                send_email_alert(user.user_email, result[0])
+                send_email_alert(user.user_email, result[0], user.locale)
                 send_notification(user.user_id)
 
     th = threading.Thread(target=notification_thread)
@@ -178,6 +182,16 @@ def get_database():
 
     # Create the database for our example (we will use the same database throughout the tutorial
     return client['GlucoDoc']
+
+
+def update_locale(locale, user_id, gluco_doc_db):
+    user_collection = gluco_doc_db['User']
+
+    user_query = {"user_id": user_id}
+    result = user_collection.find(user_query)
+    if any(u['user_id'] == user_id for u in result):
+        result.rewind()
+        user_dict = result.next()
 
 
 if __name__ == "__main__":

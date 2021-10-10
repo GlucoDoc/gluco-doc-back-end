@@ -1,0 +1,11 @@
+{
+    "main": {
+        "glucose_email": {
+            "body": "Hemos predicho que su glucosa podría estar en un estado {}.\nPor favor, verifique su nivel de glucosa",
+            "hyperglycemia": "hiperglucemia",
+            "hypoglycemia": "hipoglucemia",
+            "normal": "normal",
+            "subject": "Alerta Gluco Doc"
+        }
+    }
+}

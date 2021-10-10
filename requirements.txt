@@ -10,3 +10,4 @@ scikit-learn~=0.24.2
 requests~=2.26.0
 pymongo
 dnspython
+python-i18n
