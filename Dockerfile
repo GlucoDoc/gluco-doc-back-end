@@ -11,8 +11,8 @@ CMD mkdir apicontroller
 CMD mkdir notifications
 CMD mkdir models
 
-COPY classifier/data_processor.py ./classifier/data_processor.py
-COPY classifier/classifier.py ./classifier/classifier.py
+COPY classifiers/egvs/egvs_data_processor.py ./classifier/data_processor.py
+COPY classifiers/egvs/egvs_classifier.py ./classifier/classifier.py
 COPY api/apicontroller.py ./apicontroller.py
 COPY api/default_api_page.html ./default_api_page.html
 COPY notifications/access_token.py ./notifications/access_token.py

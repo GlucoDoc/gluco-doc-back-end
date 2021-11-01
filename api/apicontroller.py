@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 from flask import Flask
 from werkzeug.exceptions import BadRequest
 
-from classifier.data_processor import process_data
-from classifier.classifier import train_model
+from classifiers.egvs.egvs_data_processor import process_data
+from classifiers.egvs.egvs_classifier import train_model
 from notifications.notification import send_notification
 from notifications.email_util import get_user_email, send_email_alert
 from models.user import User
@@ -54,6 +54,13 @@ def update_user(access_token, user_id, alexa_user_access_token):
         res = conn.getresponse()
         json_data_string = res.read().decode("utf-8")
 
+        # conn.request("GET", "/v2/users/self/events?startDate=" + start_date + "&endDate=" + end_date, headers=headers)
+        #
+        # resp = conn.getresponse()
+        # events_json_data_string = resp.read().decode("utf-8")
+        # with open("events.json", "w") as text_file:
+        #     text_file.write(events_json_data_string)
+
         user.model = pickle.dumps(train_model(process_data(json_data_string)))
         user.last_model_date = datetime.now()
 
@@ -69,11 +76,11 @@ def update_user(access_token, user_id, alexa_user_access_token):
         user_email = get_user_email(alexa_user_access_token)
         user = User(user_id, None, None, user_email, user_locale)
 
-        user_query = {"user_id": user_id}
+        user_query = {"user_email": user_email}
 
         result = user_collection.find(user_query)
 
-        if any(u['user_id'] == user_id for u in result):
+        if any(u['user_email'] == user_email for u in result):
             result.rewind()
             user_dict = result.next()
 

@@ -132,6 +132,6 @@ dmypy.json
 api/last_model_date.pickle
 api/trained_model.joblib
 
-classifier/processed_egvs.csv
+classifiers/processed_egvs.csv
 
 aws.xml
