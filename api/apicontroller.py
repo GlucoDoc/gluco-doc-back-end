@@ -90,6 +90,38 @@ def update_user(access_token, user_id, alexa_api_access_token):
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
+@app.route('/updateUser/<string:alexa_user_access_token>/<string:sex>/<string:weight>/<string:height_m>/<string:age>', methods=['POST', 'GET'])
+def update_user_personal_data(alexa_user_access_token, sex, weight, height_m, age):
+    gluco_doc_db = get_database()
+    user_collection = gluco_doc_db['User']
+    user_email = get_user_email(alexa_user_access_token)
+    user_query = {"user_email": user_email}
+    result = user_collection.find(user_query)
+    edited = False
+
+    if any(u['user_email'] == user_email for u in result):
+        result.rewind()
+        user = get_user_from_dict(result.next())
+        if sex is not None:
+            user.sex = Sex.MALE.value if sex == 'male' else user.sex == Sex.FEMALE.value
+            edited = True
+        if weight is not None:
+            user.weight = float(weight)
+            edited = True
+        if height_m is not None:
+            user.height_m = float(height_m)
+            user.height_cm = float(height_m) * 100
+            edited = True
+        if age is not None:
+            user.age = int(age)
+        user.activity_factor = ActivityFactor.SEDENTARY.value
+        if edited:
+            user.profile_modification_date = datetime.now()
+            user_update = {"$set": user.__dict__}
+            user_collection.update_one(user_query, user_update)
+    else:
+        return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {'ContentType': 'application/json'}
+
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
@@ -122,8 +154,7 @@ def date_time_prediction(weekday, time, alexa_api_access_token):
     if any(u['user_email'] == user_email for u in result):
         result.rewind()
         user_dict = result.next()
-        user = User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'],
-                    user_dict['locale'])
+        user = get_user_from_dict(user_dict)
 
         weekday_number = int(weekday)
         time_number = int(time)
