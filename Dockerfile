@@ -15,8 +15,8 @@ COPY classifiers/egvs/egvs_data_processor.py ./classifier/data_processor.py
 COPY classifiers/egvs/egvs_classifier.py ./classifier/classifier.py
 COPY api/apicontroller.py ./apicontroller.py
 COPY api/default_api_page.html ./default_api_page.html
-COPY notifications/access_token.py ./notifications/access_token.py
-COPY notifications/credentials.py ./notifications/credentials.py
-COPY notifications/email_util.py ./notifications/email_util.py
-COPY notifications/notification.py ./notifications/notification.py
+COPY services/notifications/access_token_service.py ./notifications/access_token.py
+COPY services/notifications/credentials_service.py ./notifications/credentials.py
+COPY services/notifications/email_util_service.py ./notifications/email_util.py
+COPY services/notifications/notification_service.py ./notifications/notification.py
 COPY models/user.py ./models/user.py

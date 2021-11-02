@@ -7,10 +7,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
 from sklearn.metrics import classification_report
 
-
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# test
+
 def train_model(csv_string):
     print('Training Model...')
 
@@ -41,7 +40,6 @@ def train_model(csv_string):
     print('\nFinished training!')
 
     return model
-
 
 # if __name__ == '__main__':
 #     train_model()

@@ -12,10 +12,12 @@ from werkzeug.exceptions import BadRequest
 
 from classifiers.egvs.egvs_data_processor import process_data
 from classifiers.egvs.egvs_classifier import train_model
-from notifications.notification import send_notification
-from notifications.email_util import get_user_email, send_email_alert
+from services.notifications.notification_service import send_notification
+from services.notifications.email_util_service import get_user_email, send_email_alert
+from services.meal_recommendations.meal_recomentdations_service import get_meal_recommendation_list
 from models.user import User
 from flask import request
+from models.recommendation_enums import *
 
 # Creation of the Flask app
 app = Flask(__name__)
@@ -33,8 +35,8 @@ def default():
     return html_file.read()
 
 
-@app.route('/updateUser/<string:access_token>/<string:user_id>/<string:alexa_user_access_token>')
-def update_user(access_token, user_id, alexa_user_access_token):
+@app.route('/updateUser/<string:access_token>/<string:user_id>/<string:alexa_api_access_token>')
+def update_user(access_token, user_id, alexa_api_access_token):
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
     user_locale = request.headers['locale']
@@ -54,26 +56,19 @@ def update_user(access_token, user_id, alexa_user_access_token):
         res = conn.getresponse()
         json_data_string = res.read().decode("utf-8")
 
-        # conn.request("GET", "/v2/users/self/events?startDate=" + start_date + "&endDate=" + end_date, headers=headers)
-        #
-        # resp = conn.getresponse()
-        # events_json_data_string = resp.read().decode("utf-8")
-        # with open("events.json", "w") as text_file:
-        #     text_file.write(events_json_data_string)
-
         user.model = pickle.dumps(train_model(process_data(json_data_string)))
         user.last_model_date = datetime.now()
 
         if is_new_user:
             user_collection.insert_one(user.__dict__)
         else:
-            user_query = {"user_id": user.user_id}
+            user_query = {"user_email": user.user_email}
             user_update = {"$set": user.__dict__}
             user_collection.update_one(user_query, user_update)
 
     def train_model_thread():
 
-        user_email = get_user_email(alexa_user_access_token)
+        user_email = get_user_email(alexa_api_access_token)
         user = User(user_id, None, None, user_email, user_locale)
 
         user_query = {"user_email": user_email}
@@ -95,15 +90,36 @@ def update_user(access_token, user_id, alexa_user_access_token):
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/prediction/<string:weekday>/<string:time>/<string:user_id>', methods=['POST', 'GET'])
-def date_time_prediction(weekday, time, user_id):
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+
+
+@app.route('/getRecommendations/<string:alexa_api_access_token>', methods=['POST', 'GET'])
+def get_meal_recommendations(alexa_api_access_token):
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
-
-    user_query = {"user_id": user_id}
+    user_email = get_user_email(alexa_api_access_token)
+    user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
 
-    if any(u['user_id'] == user_id for u in result):
+    if any(u['user_email'] == user_email for u in result):
+        result.rewind()
+        user_dict = result.next()
+        user = get_user_from_dict(user_dict)
+        recommendations = get_meal_recommendation_list(user.sex, user.weight, user.height_cm, user.age)
+        return json.dumps({'success': True, 'recommendations': recommendations}), 200, {'ContentType': 'application/json'}
+    else:
+        return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {'ContentType': 'application/json'}
+
+
+@app.route('/prediction/<string:weekday>/<string:time>/<string:alexa_api_access_token>', methods=['POST', 'GET'])
+def date_time_prediction(weekday, time, alexa_api_access_token):
+    gluco_doc_db = get_database()
+    user_collection = gluco_doc_db['User']
+    user_email = get_user_email(alexa_api_access_token)
+    user_query = {"user_email": user_email}
+    result = user_collection.find(user_query)
+
+    if any(u['user_email'] == user_email for u in result):
         result.rewind()
         user_dict = result.next()
         user = User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'],
@@ -152,7 +168,7 @@ def send_notifications(state=None):
 
         for user_dict in cursor:
 
-            user = User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'], user_dict['locale'])
+            user = get_user_from_dict(user_dict)
 
             classified_model = pickle.loads(user.model)
             result = None
@@ -191,12 +207,19 @@ def get_database():
     return client['GlucoDoc']
 
 
-def update_locale(locale, user_id, gluco_doc_db):
+def get_user_from_dict(user_dict):
+    return User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'],
+                user_dict['locale'], user_dict['sex'], user_dict['weight'], user_dict['height_m'],
+                user_dict['height_cm'], user_dict['activity_factor'], user_dict['profile_modification_date'], user_dict["age"])
+
+
+# WIP
+def update_locale(locale, user_email, gluco_doc_db):
     user_collection = gluco_doc_db['User']
 
-    user_query = {"user_id": user_id}
+    user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
-    if any(u['user_id'] == user_id for u in result):
+    if any(u['user_email'] == user_email for u in result):
         result.rewind()
         user_dict = result.next()
 
