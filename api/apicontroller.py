@@ -102,18 +102,19 @@ def update_user_personal_data(alexa_user_access_token, sex, weight, height_m, ag
     if any(u['user_email'] == user_email for u in result):
         result.rewind()
         user = get_user_from_dict(result.next())
-        if sex is not None:
+        if sex != 'None':
             user.sex = Sex.MALE.value if sex == 'male' else user.sex == Sex.FEMALE.value
             edited = True
-        if weight is not None:
+        if weight != 'None':
             user.weight = float(weight)
             edited = True
-        if height_m is not None:
+        if height_m != 'None':
             user.height_m = float(height_m)
             user.height_cm = float(height_m) * 100
             edited = True
-        if age is not None:
+        if age != 'None':
             user.age = int(age)
+            edited = True
         user.activity_factor = ActivityFactor.SEDENTARY.value
         if edited:
             user.profile_modification_date = datetime.now()
@@ -256,4 +257,4 @@ def update_locale(locale, user_email, gluco_doc_db):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0', port=5001)
