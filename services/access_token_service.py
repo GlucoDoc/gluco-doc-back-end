@@ -1,7 +1,7 @@
 import json
 
 import requests
-from services.notifications.credentials_service import key
+from services.credentials import key
 import logging
 
 # Token access constants

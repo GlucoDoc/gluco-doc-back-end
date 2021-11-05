@@ -4,7 +4,7 @@ import json
 import requests
 import logging
 
-from services.notifications.access_token_service import get_access_token
+from services.access_token_service import get_access_token
 
 
 UTC_FORMAT = "%Y-%m-%dT%H:%M:%S.00Z"

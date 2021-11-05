@@ -5,16 +5,17 @@ import pickle
 import ssl
 import threading
 import json
+import i18n
+import pandas as pd
 
 from datetime import datetime, timedelta
 from flask import Flask
 from werkzeug.exceptions import BadRequest
-
 from classifiers.egvs.egvs_data_processor import process_data
 from classifiers.egvs.egvs_classifier import train_model
-from services.notifications.notification_service import send_notification
-from services.notifications.email_util_service import get_user_email, send_email_alert
-from services.meal_recommendations.meal_recomentdations_service import get_meal_recommendation_list
+from services.notification_service import send_notification
+from services.email_util_service import get_user_email, send_email
+from services.meal_recomentdations_service import get_meal_recommendation_list
 from models.user import User
 from flask import request
 from models.recommendation_enums import *
@@ -27,6 +28,10 @@ os.environ['GLUCODOC_EMAIL_PASSWORD'] = "glucodoc2016"
 
 os.environ['HYPERGLYCEMIA_THRESHOLD'] = "180"
 os.environ['HYPOGLYCEMIA_THRESHOLD'] = "70"
+
+i18n.load_path.append('../i18n')
+# i18n.set('filename_format', locale + '.json')
+# i18n.set('skip_locale_root_data', True)
 
 
 @app.route('/')
@@ -90,11 +95,12 @@ def update_user(access_token, user_id, alexa_api_access_token):
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/updateUser/<string:alexa_user_access_token>/<string:sex>/<string:weight>/<string:height_m>/<string:age>', methods=['POST', 'GET'])
-def update_user_personal_data(alexa_user_access_token, sex, weight, height_m, age):
+@app.route('/updateUser/<string:alexa_api_access_token>/<string:sex>/<string:weight>/<string:height_m>/<string:age>',
+           methods=['POST', 'GET'])
+def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age):
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
-    user_email = get_user_email(alexa_user_access_token)
+    user_email = get_user_email(alexa_api_access_token)
     user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
     edited = False
@@ -121,7 +127,8 @@ def update_user_personal_data(alexa_user_access_token, sex, weight, height_m, ag
             user_update = {"$set": user.__dict__}
             user_collection.update_one(user_query, user_update)
     else:
-        return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {'ContentType': 'application/json'}
+        return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {
+            'ContentType': 'application/json'}
 
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
@@ -139,9 +146,11 @@ def get_meal_recommendations(alexa_api_access_token):
         user_dict = result.next()
         user = get_user_from_dict(user_dict)
         recommendations = get_meal_recommendation_list(user.sex, user.weight, user.height_cm, user.age)
-        return json.dumps({'success': True, 'recommendations': recommendations}), 200, {'ContentType': 'application/json'}
+        return json.dumps({'success': True, 'recommendations': recommendations}), 200, {
+            'ContentType': 'application/json'}
     else:
-        return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {'ContentType': 'application/json'}
+        return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {
+            'ContentType': 'application/json'}
 
 
 @app.route('/prediction/<string:weekday>/<string:time>/<string:alexa_api_access_token>', methods=['POST', 'GET'])
@@ -184,13 +193,14 @@ def date_time_prediction(weekday, time, alexa_api_access_token):
         }
 
 
-@app.route('/notifications/<string:state>', methods=['POST', 'GET'])
+# Endpoint used for testing
+@app.route('/glucoseNotifications/<string:state>', methods=['POST', 'GET'])
 def send_notifications_params(state):
     send_notifications(state)
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/notifications', methods=['POST', 'GET'])
+@app.route('/glucoseNotifications', methods=['POST', 'GET'])
 def send_notifications(state=None):
     def notification_thread():
 
@@ -210,14 +220,36 @@ def send_notifications(state=None):
             else:
                 result = classified_model.predict([[str(datetime.now().weekday()), str(datetime.now().hour)]])
 
-            print(result)
-
             if result[0] == "hypoglycemia" or result[0] == "hyperglycemia":
-                send_email_alert(user.user_email, result[0], user.locale)
+                i18n.set('filename_format', user.locale + '.json')
+                i18n.set('skip_locale_root_data', True)
+                send_email(user.user_email, i18n.t("main.glucose_email.subject"), i18n.t("main.glucose_email.body")
+                           .format(i18n.t("main.glucose_email." + result[0])) + ".")
                 send_notification(user.user_id)
 
     th = threading.Thread(target=notification_thread)
     th.start()
+
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+
+
+@app.route('/sendRecommendationEmail/<string:alexa_api_access_token>/<string:meal_id>', methods=['POST', 'GET'])
+def send_recommendation_email(alexa_api_access_token, meal_id):
+    gluco_doc_db = get_database()
+    user_collection = gluco_doc_db['User']
+    user_email = get_user_email(alexa_api_access_token)
+    user_query = {"user_email": user_email}
+    result = user_collection.find(user_query)
+    meal_csv = pd.read_csv('../classifiers/meals/meals.csv')
+    meal_rows = meal_csv[['id', 'title', 'ingredients', 'spoonacularSourceUrl', 'image']]
+    meal = meal_csv.loc[meal_csv['id'] == int(meal_id)]
+    if any(u['user_email'] == user_email for u in result):
+        result.rewind()
+        user_dict = result.next()
+        user = get_user_from_dict(user_dict)
+        print(meal['title'].iloc[0])
+        print(meal['ingredients'].iloc[0])
+        send_email(user_email, "Your Meal Details (" + str(meal['title'].iloc[0]) + ")", "Ingredients: " + str(meal['ingredients'].iloc[0]))
 
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
@@ -242,7 +274,8 @@ def get_database():
 def get_user_from_dict(user_dict):
     return User(user_dict['user_id'], user_dict['model'], user_dict['last_model_date'], user_dict['user_email'],
                 user_dict['locale'], user_dict['sex'], user_dict['weight'], user_dict['height_m'],
-                user_dict['height_cm'], user_dict['activity_factor'], user_dict['profile_modification_date'], user_dict["age"])
+                user_dict['height_cm'], user_dict['activity_factor'], user_dict['profile_modification_date'],
+                user_dict["age"])
 
 
 # WIP
@@ -257,4 +290,4 @@ def update_locale(locale, user_email, gluco_doc_db):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5000)

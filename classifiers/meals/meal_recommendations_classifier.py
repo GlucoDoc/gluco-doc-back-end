@@ -12,7 +12,7 @@ def get_recommendations(nutrients: RequiredMealNutrients):
     meals = pd.read_csv(ROOT_DIR + './meals.csv')
 
     x = meals[['calories', 'Protein/g', 'Fat/g', 'Carbohydrates/g']]
-    meal_rows = meals[['title']]
+    meal_rows = meals[['id', 'title']]
     nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto').fit(x.sample(frac=0.50))
 
     required_nutrients = {'calories': [nutrients.calories / 3], 'Protein/g': [nutrients.proteins / 3],
@@ -20,11 +20,14 @@ def get_recommendations(nutrients: RequiredMealNutrients):
 
     df_required_nutrients = pd.DataFrame(required_nutrients)
 
-    distances, indices = nbrs.kneighbors(df_required_nutrients)
+    distances, indexes = nbrs.kneighbors(df_required_nutrients)
 
     meal_names = []
 
-    for i in indices[0]:
-        meal_names.append(meal_rows.loc[i]['title'])
+    for i in indexes[0]:
+        meal_names.append({
+            'id': int(meal_rows.loc[i]['id']),
+            'name': meal_rows.loc[i]['title']
+        })
 
     return meal_names

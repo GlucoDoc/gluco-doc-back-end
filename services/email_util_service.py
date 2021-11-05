@@ -19,11 +19,11 @@ def get_user_email(access_token):
     return str(response.json())
 
 
-def send_email_alert(user_email, predicted_state, locale):
-    print(locale)
-    i18n.load_path.append('../i18n')
-    i18n.set('filename_format', locale + '.json')
-    i18n.set('skip_locale_root_data', True)
+def send_email(user_email, subject, message):
+
+    # i18n.load_path.append('../i18n')
+    # i18n.set('filename_format', locale + '.json')
+    # i18n.set('skip_locale_root_data', True)
 
     with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
 
@@ -33,10 +33,10 @@ def send_email_alert(user_email, predicted_state, locale):
 
         smtp.login("no.reply.glucodoc@gmail.com", "glucodoc2016")
         # Create a text/plain message
-        msg = MIMEText(i18n.t("main.glucose_email.body").format(i18n.t("main.glucose_email." + predicted_state)) + ".")
+        msg = MIMEText(message)
         # me == the sender's email address
         # you == the recipient's email address
-        msg['Subject'] = i18n.t("main.glucose_email.subject")
+        msg['Subject'] = subject
         msg['From'] = "no-reply@glucodoc.com"
         msg['To'] = user_email
 
