@@ -9,11 +9,12 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_recommendations(nutrients: RequiredMealNutrients):
-    meals = pd.read_csv(ROOT_DIR + '/we_made_it_bitchez.tsv', sep='\t', chunksize=200000)
-    x = meals.get_chunk(200000)[['calories', 'proteins', 'fats', 'carbohydrates']]
+    meals = pd.read_csv(ROOT_DIR + '/we_made_it_bitchez.tsv', sep='\t', chunksize=500000)
+    x = meals.get_chunk(500000)[['calories', 'proteins', 'fats', 'carbohydrates']]
     meal_rows = x
     print(meal_rows)
-    nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x)
+
+    nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='chebyshev').fit(x)
 
     required_nutrients = {'calories': [nutrients.calories], 'proteins': [nutrients.proteins],
                           'fats': [nutrients.fats], 'carbohydrates': [nutrients.carbohydrates]}

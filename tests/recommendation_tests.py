@@ -8,6 +8,16 @@
 # Sex: Female
 # Exercise: HARD
 
+# Test subject 1:
+# Dataset ID: 190423
+# Age range: 18-39
+# Age: 20
+# Height: 177.30 cm -> 1.77 m
+# Weight: 92.70 Kg
+# BMI: 29.50
+# Sex: Female
+# Exercise: HARD
+
 # Test subject 2:
 # Dataset ID: 316463
 # Age range: 40-59
@@ -34,14 +44,14 @@ from services.meal_recomentdations_service import *
 
 
 def generate_test_cases():
-    subject_1_nutrients = get_user_required_meal_nutrients(Sex.FEMALE.value, 183.80, 163, 20)
-    subject_1_recommendations = get_meal_recommendation_list(Sex.FEMALE.value, 183.80, 163, 20)
+    subject_1_nutrients = get_user_required_meal_nutrients(Sex.FEMALE.value, 92.70, 177.30, 20, ActivityFactor.HARD.value)
+    subject_1_recommendations = get_meal_recommendation_list(Sex.FEMALE.value, 92.70, 177.30, 20, ActivityFactor.HARD.value)
 
-    subject_2_nutrients = get_user_required_meal_nutrients(Sex.FEMALE.value, 76.40, 161.90, 50)
-    subject_2_recommendations = get_meal_recommendation_list(Sex.FEMALE.value, 76.40, 161.90, 50)
+    subject_2_nutrients = get_user_required_meal_nutrients(Sex.FEMALE.value, 76.40, 161.90, 50, ActivityFactor.LIGHT.value)
+    subject_2_recommendations = get_meal_recommendation_list(Sex.FEMALE.value, 76.40, 161.90, 50, ActivityFactor.LIGHT.value)
 
-    subject_3_nutrients = get_user_required_meal_nutrients(Sex.MALE.value, 50.40, 143.70, 62)
-    subject_3_recommendations = get_meal_recommendation_list(Sex.MALE.value, 50.40, 143.70, 62)
+    subject_3_nutrients = get_user_required_meal_nutrients(Sex.MALE.value, 50.40, 143.70, 62, ActivityFactor.SEDENTARY.value)
+    subject_3_recommendations = get_meal_recommendation_list(Sex.MALE.value, 50.40, 143.70, 62, ActivityFactor.SEDENTARY.value)
 
     print_experiment(subject_1_nutrients, subject_1_recommendations)
     print_experiment(subject_2_nutrients, subject_2_recommendations)
