@@ -49,10 +49,10 @@ def generate_test_cases():
 
 
 def print_experiment(nutrients: RequiredMealNutrients, recommendations: []):
-    print('User Required Calories: ' + str(nutrients.calories/3))
-    print('User Required Proteins: ' + str(nutrients.proteins/3))
-    print('User Required Fats: ' + str(nutrients.fats/3))
-    print('User Required Carbohydrates: ' + str(nutrients.carbohydrates/3))
+    print('User Required Calories: ' + str(nutrients.calories))
+    print('User Required Proteins: ' + str(nutrients.proteins))
+    print('User Required Fats: ' + str(nutrients.fats))
+    print('User Required Carbohydrates: ' + str(nutrients.carbohydrates))
 
     for dish in recommendations:
         print(dish)
