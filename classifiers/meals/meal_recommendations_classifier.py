@@ -24,6 +24,8 @@ def get_recommendations(nutrients: RequiredMealNutrients):
 
     meal_names = []
 
+    print(distances)
+
     for i in indexes[0]:
         meal_names.append({
             # 'name': meal_rows.loc[i]['title'],

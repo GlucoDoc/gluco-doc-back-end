@@ -58,7 +58,10 @@ def calculate_basal_calories(user_sex, weight, height_cm, age):
 
 def get_user_required_meal_nutrients(user_sex, weight, height_cm, age):
     user_basal_calories = calculate_basal_calories(user_sex, weight, height_cm, age)
-    return get_required_meal_nutrients_from_calories(user_basal_calories)
+    nutrients = get_required_meal_nutrients_from_calories(user_basal_calories)
+    nutrients.proteins = weight * 0.8
+    nutrients.proteins = weight * 0.8
+    return nutrients
 
 
 def get_meal_recommendation_list(user_sex, weight, height_cm, age):
