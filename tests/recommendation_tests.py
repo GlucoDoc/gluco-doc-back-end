@@ -68,11 +68,16 @@ def print_experiment(nutrients: RequiredMealNutrients, recommendations: [], dist
     print('User Required Fats: ' + str(nutrients.fats))
     print('User Required Carbohydrates: ' + str(nutrients.carbohydrates))
 
-    for dish in recommendations:
-        print(dish)
+    for i, dish in enumerate(recommendations):
+        print('Dish Name: ' + dish['name'])
+        print('Calories: ' + str(dish['calories']))
+        print('Proteins: ' + str(dish['proteins']))
+        print('Fats: ' + str(dish['fats']))
+        print('Carbohydrates: ' + str(dish['carbohydrates']))
 
+    print('Euclidean Distance: ')
     print(distances)
-    print('====================================================================')
+    print('===============================================================================================')
 
 
 if __name__ == "__main__":
