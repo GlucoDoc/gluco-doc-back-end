@@ -1,3 +1,4 @@
+import math
 import os
 
 from sklearn.neighbors import NearestNeighbors
@@ -12,9 +13,8 @@ def get_recommendations(nutrients: RequiredMealNutrients):
     meals = pd.read_csv(ROOT_DIR + '/we_made_it_bitchez.tsv', sep='\t', chunksize=500000)
     x = meals.get_chunk(500000)[['calories', 'proteins', 'fats', 'carbohydrates']]
     meal_rows = x
-    print(meal_rows)
 
-    nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='chebyshev').fit(x)
+    nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x)
 
     required_nutrients = {'calories': [nutrients.calories], 'proteins': [nutrients.proteins],
                           'fats': [nutrients.fats], 'carbohydrates': [nutrients.carbohydrates]}
@@ -25,8 +25,6 @@ def get_recommendations(nutrients: RequiredMealNutrients):
 
     meal_names = []
 
-    print(distances)
-
     for i in indexes[0]:
         meal_names.append({
             # 'name': meal_rows.loc[i]['title'],
@@ -36,4 +34,11 @@ def get_recommendations(nutrients: RequiredMealNutrients):
             'carbohydrates': float(meal_rows.loc[i]['carbohydrates'])
         })
 
-    return meal_names
+    return meal_names, distances
+
+
+def euclidean_distance(row, meal_rows, meal):
+    inner_value = 0
+    for k in meal_rows:
+        inner_value += (row[k] - meal[k]) ** 2
+    return math.sqrt(inner_value)

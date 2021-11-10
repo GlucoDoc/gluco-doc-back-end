@@ -44,21 +44,25 @@ from services.meal_recomentdations_service import *
 
 
 def generate_test_cases():
+    subject_0_nutrients = get_user_required_meal_nutrients(Sex.FEMALE.value, 163.00, 183.80, 20, ActivityFactor.HARD.value)
+    subject_0_recommendations, subject_0_distances = get_meal_recommendation_list(Sex.FEMALE.value, 163.00, 183.80, 20, ActivityFactor.HARD.value)
+
     subject_1_nutrients = get_user_required_meal_nutrients(Sex.FEMALE.value, 92.70, 177.30, 20, ActivityFactor.HARD.value)
-    subject_1_recommendations = get_meal_recommendation_list(Sex.FEMALE.value, 92.70, 177.30, 20, ActivityFactor.HARD.value)
+    subject_1_recommendations, subject_1_distances = get_meal_recommendation_list(Sex.FEMALE.value, 92.70, 177.30, 20, ActivityFactor.HARD.value)
 
     subject_2_nutrients = get_user_required_meal_nutrients(Sex.FEMALE.value, 76.40, 161.90, 50, ActivityFactor.LIGHT.value)
-    subject_2_recommendations = get_meal_recommendation_list(Sex.FEMALE.value, 76.40, 161.90, 50, ActivityFactor.LIGHT.value)
+    subject_2_recommendations, subject_2_distances = get_meal_recommendation_list(Sex.FEMALE.value, 76.40, 161.90, 50, ActivityFactor.LIGHT.value)
 
     subject_3_nutrients = get_user_required_meal_nutrients(Sex.MALE.value, 50.40, 143.70, 62, ActivityFactor.SEDENTARY.value)
-    subject_3_recommendations = get_meal_recommendation_list(Sex.MALE.value, 50.40, 143.70, 62, ActivityFactor.SEDENTARY.value)
+    subject_3_recommendations, subject_3_distances = get_meal_recommendation_list(Sex.MALE.value, 50.40, 143.70, 62, ActivityFactor.SEDENTARY.value)
 
-    print_experiment(subject_1_nutrients, subject_1_recommendations)
-    print_experiment(subject_2_nutrients, subject_2_recommendations)
-    print_experiment(subject_3_nutrients, subject_3_recommendations)
+    print_experiment(subject_0_nutrients, subject_0_recommendations, subject_0_distances)
+    print_experiment(subject_1_nutrients, subject_1_recommendations, subject_1_distances)
+    print_experiment(subject_2_nutrients, subject_2_recommendations, subject_2_distances)
+    print_experiment(subject_3_nutrients, subject_3_recommendations, subject_3_distances)
 
 
-def print_experiment(nutrients: RequiredMealNutrients, recommendations: []):
+def print_experiment(nutrients: RequiredMealNutrients, recommendations: [], distances):
     print('User Required Calories: ' + str(nutrients.calories))
     print('User Required Proteins: ' + str(nutrients.proteins))
     print('User Required Fats: ' + str(nutrients.fats))
@@ -66,6 +70,8 @@ def print_experiment(nutrients: RequiredMealNutrients, recommendations: []):
 
     for dish in recommendations:
         print(dish)
+
+    print(distances)
     print('====================================================================')
 
 
