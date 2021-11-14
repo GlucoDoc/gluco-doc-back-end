@@ -14,7 +14,7 @@ def get_recommendations(nutrients: RequiredMealNutrients):
     meals = pd.read_csv(ROOT_DIR + '/processed_meals.tsv', sep='\t', chunksize=500000)
     first_chunk = meals.get_chunk(500000)
     x = first_chunk[['calories', 'proteins', 'fats', 'carbohydrates']]
-    meal_rows = first_chunk[['calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
+    meal_rows = first_chunk[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
 
     nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x)
 
@@ -40,6 +40,7 @@ def get_recommendations(nutrients: RequiredMealNutrients):
                     names += ' '
 
         meal_names.append({
+            'id': str(i),
             'name': names,
             'calories': float(meal_rows.loc[i]['calories']),
             'proteins': float(meal_rows.loc[i]['proteins']),

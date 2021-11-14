@@ -145,7 +145,7 @@ def get_meal_recommendations(alexa_api_access_token):
         result.rewind()
         user_dict = result.next()
         user = get_user_from_dict(user_dict)
-        recommendations = get_meal_recommendation_list(user.sex, user.weight, user.height_cm, user.age)
+        recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm, user.age, ActivityFactor.MEDIUM.value)
         return json.dumps({'success': True, 'recommendations': recommendations}), 200, {
             'ContentType': 'application/json'}
     else:
@@ -240,16 +240,23 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
     user_email = get_user_email(alexa_api_access_token)
     user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
-    meal_csv = pd.read_csv('../classifiers/meals/meals.csv')
-    meal_rows = meal_csv[['id', 'title', 'ingredients', 'spoonacularSourceUrl', 'image']]
-    meal = meal_csv.loc[meal_csv['id'] == int(meal_id)]
+    meal_tsv = pd.read_csv('../classifiers/meals/processed_meals.tsv', sep='\t', chunksize=500000)
+    first_chunk = meal_tsv.get_chunk(500000)
+    meal_rows = first_chunk[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
+    meal = first_chunk.loc[first_chunk['id'] == int(meal_id)]
+
     if any(u['user_email'] == user_email for u in result):
         result.rewind()
         user_dict = result.next()
         user = get_user_from_dict(user_dict)
-        print(meal['title'].iloc[0])
-        print(meal['ingredients'].iloc[0])
-        send_email(user_email, "Your Meal Details (" + str(meal['title'].iloc[0]) + ")", "Ingredients: " + str(meal['ingredients'].iloc[0]))
+        print(meal['meals']['name'].iloc[0])
+    # if any(u['user_email'] == user_email for u in result):
+    #     result.rewind()
+    #     user_dict = result.next()
+    #     user = get_user_from_dict(user_dict)
+    #     print(meal['title'].iloc[0])
+    #     print(meal['ingredients'].iloc[0])
+    #     send_email(user_email, "Your Meal Details (" + str(meal['title'].iloc[0]) + ")", "Ingredients: " + str(meal['ingredients'].iloc[0]))
 
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
@@ -261,7 +268,7 @@ def handle_bad_request(e):
 
 def get_database():
     # Provide the mongodb atlas url to connect python to mongodb using pymongo
-    CONNECTION_STRING = "mongodb+srv://glucoDoc:mUmg9B3PTcJuE988@glucodoc.f8dds.mongodb.net/GlucoDoc?retryWrites=true&w=majority"
+    CONNECTION_STRING = "mongodb+srv://glucoDoc:glucoDoc@glucodoc.f8dds.mongodb.net/GlucoDoc?retryWrites=true&w=majority"
 
     # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
     from pymongo import MongoClient

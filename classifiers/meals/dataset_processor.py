@@ -1,17 +1,13 @@
-import numpy as np
 import pandas as pd
-import json
 import csv
-import io
 import json
 import os
-import zlib
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_meals_dataframe():
-    meals_dataframe = {'calories': [], 'proteins': [], 'fats': [], 'carbohydrates': [], 'meals': []}
+    meals_dataframe = {'id': int, 'calories': [], 'proteins': [], 'fats': [], 'carbohydrates': [], 'meals': []}
 
     tsv_file = open("mfp-diaries.tsv")
     read_tsv = csv.reader(tsv_file, delimiter="\t")
@@ -24,13 +20,14 @@ def get_meals_dataframe():
         meals_json = json.loads(str(row[2]))
         total_calories, total_proteins, total_fats, total_carbohydrates, total_sugar = get_total_nutrients_from_json(totals_json['total'])
 
+        meals_dataframe['id'] = i
+
         if total_sugar != -1 and float(total_sugar) <= 30 and total_calories != -1 and total_proteins != -1 and total_fats != -1 and total_carbohydrates != -1:
             meals_dataframe['calories'].append(total_calories)
             meals_dataframe['proteins'].append(total_proteins)
             meals_dataframe['fats'].append(total_fats)
             meals_dataframe['carbohydrates'].append(total_carbohydrates)
             a = json.dumps(meals_json, separators=(',', ':'))
-            # a = zlib.compress(json.dumps(meals_json).encode())
             meals_dataframe['meals'].append(a)
 
     pd.DataFrame(meals_dataframe).to_csv('processed_meals.tsv', sep='\t', encoding='utf-8')
