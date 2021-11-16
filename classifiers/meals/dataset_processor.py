@@ -7,14 +7,13 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_meals_dataframe():
-    meals_dataframe = {'id': int, 'calories': [], 'proteins': [], 'fats': [], 'carbohydrates': [], 'meals': []}
+    meals_dataframe = {'id': [], 'calories': [], 'proteins': [], 'fats': [], 'carbohydrates': [], 'meals': []}
 
     tsv_file = open("mfp-diaries.tsv")
     read_tsv = csv.reader(tsv_file, delimiter="\t")
 
     i = 0
     for row in read_tsv:
-        print(i)
         i += 1
         totals_json = json.loads(str(row[3]))
         meals_json = json.loads(str(row[2]))
