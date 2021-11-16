@@ -40,7 +40,7 @@
 from models.meal_nutrients import RequiredMealNutrients
 from models.recommendation_enums import *
 
-from services.meal_recomentdations_service import *
+from services.meal_recommendations_service import *
 
 class TestSubject:
     def __init__(self, sex, weight, height, age , excercise_level):

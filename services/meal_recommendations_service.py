@@ -1,5 +1,7 @@
 from enum import Enum
 
+from bson import Decimal128
+
 from models.meal_nutrients import get_required_meal_nutrients_from_calories
 from classifiers.meals.meal_recommendations_classifier import get_recommendations
 
@@ -37,7 +39,7 @@ sex = Sex.MALE.value
 
 def calculate_bmi(weight, height_m):
     # Formula: weight (kg) / [height (m)]^2
-    return (weight / (height_m ** 2)) * 100
+    return float(weight / height_m ** 2.0) * float(100)
 
 
 # Harris Benedict’s equation
@@ -45,9 +47,9 @@ def calculate_basal_calories(user_sex, weight, height_cm, age, activity_factor):
     basal_calories = 0
 
     if user_sex == Sex.MALE.value:
-        basal_calories = 10 * weight + 6.25 * height_cm - 5 * age + AgeFactor.MALE.value
+        basal_calories = 10.0 * weight + 6.25 * height_cm - 5.0 * age + AgeFactor.MALE.value
     elif user_sex == Sex.FEMALE.value:
-        basal_calories = 10 * weight + 6.25 * height_cm - 5 * age + AgeFactor.FEMALE.value
+        basal_calories = 10.0 * weight + 6.25 * height_cm - 5.0 * age + AgeFactor.FEMALE.value
 
     basal_calories = basal_calories * activity_factor
 
@@ -63,5 +65,17 @@ def get_user_required_meal_nutrients(user_sex, weight, height_cm, age, activity_
 
 
 def get_meal_recommendation_list(user_sex, weight, height_cm, age, activity_factor):
-    required_meal_nutrients = get_user_required_meal_nutrients(user_sex, weight, height_cm, age, activity_factor)
+    required_meal_nutrients = get_user_required_meal_nutrients(
+        user_sex,
+        convert_decimal128_to_float(weight),
+        convert_decimal128_to_float(height_cm),
+        age,
+        activity_factor)
     return get_recommendations(required_meal_nutrients)
+
+
+def convert_decimal128_to_float(parameter) -> float:
+    if isinstance(parameter, Decimal128):
+        parameter = parameter.to_decimal()
+
+    return float(parameter)

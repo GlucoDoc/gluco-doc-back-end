@@ -11,7 +11,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_recommendations(nutrients: RequiredMealNutrients):
-    meals = pd.read_csv(ROOT_DIR + '/processed_meals.tsv', sep='\t', chunksize=500000)
+    meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t', chunksize=500000)
     first_chunk = meals.get_chunk(500000)
     x = first_chunk[['calories', 'proteins', 'fats', 'carbohydrates']]
     meal_rows = first_chunk[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
@@ -30,14 +30,19 @@ def get_recommendations(nutrients: RequiredMealNutrients):
     for i in indexes[0]:
         meal_dishes = json.loads(meal_rows.loc[i]['meals'])
         names = ''
-        for meal in meal_dishes:
-            max_calories = 0
-            for dish in meal['dishes']:
-                dish_calories = float(filter_totals('Calories', dish['nutritions']))
+        max_calories = 0
+        max_calorie_meal_index = 0
+        max_calorie_dish_index = 0
+
+        for meal_index in range(len(meal_dishes)):
+            for dish_index in range(len(meal_dishes[meal_index]['dishes'])):
+                dish_calories = float(filter_totals('Calories', meal_dishes[meal_index]['dishes'][dish_index]['nutritions']))
                 if dish_calories > max_calories:
                     max_calories = dish_calories
-                    names += dish['name']
-                    names += ' '
+                    max_calorie_meal_index = meal_index
+                    max_calorie_dish_index = dish_index
+
+        names += meal_dishes[max_calorie_meal_index]['dishes'][max_calorie_dish_index]['name']
 
         meal_names.append({
             'id': str(i),

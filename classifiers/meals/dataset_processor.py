@@ -20,9 +20,8 @@ def get_meals_dataframe():
         meals_json = json.loads(str(row[2]))
         total_calories, total_proteins, total_fats, total_carbohydrates, total_sugar = get_total_nutrients_from_json(totals_json['total'])
 
-        meals_dataframe['id'] = i
-
         if total_sugar != -1 and float(total_sugar) <= 30 and total_calories != -1 and total_proteins != -1 and total_fats != -1 and total_carbohydrates != -1:
+            meals_dataframe['id'].append(i)
             meals_dataframe['calories'].append(total_calories)
             meals_dataframe['proteins'].append(total_proteins)
             meals_dataframe['fats'].append(total_fats)
@@ -30,7 +29,7 @@ def get_meals_dataframe():
             a = json.dumps(meals_json, separators=(',', ':'))
             meals_dataframe['meals'].append(a)
 
-    pd.DataFrame(meals_dataframe).to_csv('processed_meals.tsv', sep='\t', encoding='utf-8')
+    pd.DataFrame(meals_dataframe).to_csv('processed_meals.tsv', sep='\t', encoding='utf-8', index=False)
 
 
 def get_total_nutrients_from_json(totals_json):

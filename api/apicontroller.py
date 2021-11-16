@@ -15,7 +15,7 @@ from classifiers.egvs.egvs_data_processor import process_data
 from classifiers.egvs.egvs_classifier import train_model
 from services.notification_service import send_notification
 from services.email_util_service import get_user_email, send_email
-from services.meal_recomentdations_service import get_meal_recommendation_list
+from services.meal_recommendations_service import get_meal_recommendation_list
 from models.user import User
 from flask import request
 from models.recommendation_enums import *
@@ -30,6 +30,8 @@ os.environ['HYPERGLYCEMIA_THRESHOLD'] = "180"
 os.environ['HYPOGLYCEMIA_THRESHOLD'] = "70"
 
 i18n.load_path.append('../i18n')
+
+
 # i18n.set('filename_format', locale + '.json')
 # i18n.set('skip_locale_root_data', True)
 
@@ -145,9 +147,16 @@ def get_meal_recommendations(alexa_api_access_token):
         result.rewind()
         user_dict = result.next()
         user = get_user_from_dict(user_dict)
-        recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm, user.age, ActivityFactor.MEDIUM.value)
-        return json.dumps({'success': True, 'recommendations': recommendations}), 200, {
-            'ContentType': 'application/json'}
+
+        if user.sex is not None and user.weight and user.height_cm and user.age:
+            recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm, user.age,
+                                                                      ActivityFactor.MEDIUM.value)
+            return json.dumps({'success': True, 'recommendations': recommendations}), 200, {
+                'ContentType': 'application/json'}
+        else:
+            return json.dumps({'success': False,
+                               'error_message': 'Seems like your profile is incomplete, please fill out your profile data'}), 412, {
+                       'ContentType': 'application/json'}
     else:
         return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {
             'ContentType': 'application/json'}
@@ -240,23 +249,23 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
     user_email = get_user_email(alexa_api_access_token)
     user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
-    meal_tsv = pd.read_csv('../classifiers/meals/processed_meals.tsv', sep='\t', chunksize=500000)
-    first_chunk = meal_tsv.get_chunk(500000)
-    meal_rows = first_chunk[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
-    meal = first_chunk.loc[first_chunk['id'] == int(meal_id)]
+    meal_tsv = pd.read_csv('../classifiers/meals/filtered_dataset.tsv', sep='\t')
+    meal_row = meal_tsv.loc[meal_tsv['id'] == int(meal_id)]
+
+    print(meal_row)
+
+    json_row = json.loads(meal_row.loc['meals'])
+    names = ''
+
+    for dish in json_row['dishes']:
+        names += dish['name']
 
     if any(u['user_email'] == user_email for u in result):
         result.rewind()
         user_dict = result.next()
         user = get_user_from_dict(user_dict)
-        print(meal['meals']['name'].iloc[0])
-    # if any(u['user_email'] == user_email for u in result):
-    #     result.rewind()
-    #     user_dict = result.next()
-    #     user = get_user_from_dict(user_dict)
-    #     print(meal['title'].iloc[0])
-    #     print(meal['ingredients'].iloc[0])
-    #     send_email(user_email, "Your Meal Details (" + str(meal['title'].iloc[0]) + ")", "Ingredients: " + str(meal['ingredients'].iloc[0]))
+        date = datetime.datetime.now().date()
+        send_email(user_email, "Your Meal Details (" + date + ")", names)
 
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
@@ -297,4 +306,4 @@ def update_locale(locale, user_email, gluco_doc_db):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5002)

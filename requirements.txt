@@ -11,5 +11,3 @@ requests~=2.26.0
 pymongo
 dnspython
 python-i18n
-
-i18n~=0.2
