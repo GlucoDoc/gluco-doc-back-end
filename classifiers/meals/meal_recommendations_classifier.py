@@ -11,10 +11,9 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_recommendations(nutrients: RequiredMealNutrients):
-    meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t', chunksize=500000)
-    first_chunk = meals.get_chunk(500000)
-    x = first_chunk[['calories', 'proteins', 'fats', 'carbohydrates']]
-    meal_rows = first_chunk[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
+    meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t')
+    x = meals[['calories', 'proteins', 'fats', 'carbohydrates']]
+    meal_rows = meals[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
 
     nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x)
 

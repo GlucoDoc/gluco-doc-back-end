@@ -42,30 +42,44 @@ from models.recommendation_enums import *
 
 from services.meal_recommendations_service import *
 
+
 class TestSubject:
-    def __init__(self, sex, weight, height, age , excercise_level):
+    def __init__(self, sex, weight, height, age, excercise_level):
         self.age = age
         self.height = height
         self.weight = weight
         self.sex = sex
         self.excercise_level = excercise_level
 
+
 def generate_test_cases():
-    subject_0 = TestSubject(Sex.FEMALE.value, 163.00, 183.80, 20, ActivityFactor.HARD.value)
-    subject_0_nutrients = get_user_required_meal_nutrients(subject_0.sex, subject_0.weight, subject_0.height, subject_0.age, subject_0.excercise_level)
-    subject_0_recommendations, subject_0_distances = get_meal_recommendation_list(subject_0.sex, subject_0.weight, subject_0.height, subject_0.age, subject_0.excercise_level)
+    subject_0 = TestSubject(Sex.FEMALE.value, 183.80, 163.00, 20, ActivityFactor.SEDENTARY.value)
+    subject_0_nutrients = get_user_required_meal_nutrients(subject_0.sex, subject_0.weight, subject_0.height,
+                                                           subject_0.age, subject_0.excercise_level)
+    subject_0_recommendations, subject_0_distances = get_meal_recommendation_list(subject_0.sex, subject_0.weight,
+                                                                                  subject_0.height, subject_0.age,
+                                                                                  subject_0.excercise_level)
 
     subject_1 = TestSubject(Sex.FEMALE.value, 92.70, 177.30, 20, ActivityFactor.HARD.value)
-    subject_1_nutrients = get_user_required_meal_nutrients(subject_1.sex, subject_1.weight, subject_1.height, subject_1.age, subject_1.excercise_level)
-    subject_1_recommendations, subject_1_distances = get_meal_recommendation_list(subject_1.sex, subject_1.weight, subject_1.height, subject_1.age, subject_1.excercise_level)
+    subject_1_nutrients = get_user_required_meal_nutrients(subject_1.sex, subject_1.weight, subject_1.height,
+                                                           subject_1.age, subject_1.excercise_level)
+    subject_1_recommendations, subject_1_distances = get_meal_recommendation_list(subject_1.sex, subject_1.weight,
+                                                                                  subject_1.height, subject_1.age,
+                                                                                  subject_1.excercise_level)
 
     subject_2 = TestSubject(Sex.FEMALE.value, 76.40, 161.90, 50, ActivityFactor.LIGHT.value)
-    subject_2_nutrients = get_user_required_meal_nutrients(subject_2.sex, subject_2.weight, subject_2.height, subject_2.age, subject_2.excercise_level)
-    subject_2_recommendations, subject_2_distances = get_meal_recommendation_list(subject_2.sex, subject_2.weight, subject_2.height, subject_2.age, subject_2.excercise_level)
+    subject_2_nutrients = get_user_required_meal_nutrients(subject_2.sex, subject_2.weight, subject_2.height,
+                                                           subject_2.age, subject_2.excercise_level)
+    subject_2_recommendations, subject_2_distances = get_meal_recommendation_list(subject_2.sex, subject_2.weight,
+                                                                                  subject_2.height, subject_2.age,
+                                                                                  subject_2.excercise_level)
 
     subject_3 = TestSubject(Sex.MALE.value, 50.40, 143.70, 62, ActivityFactor.SEDENTARY.value)
-    subject_3_nutrients = get_user_required_meal_nutrients(subject_3.sex, subject_3.weight, subject_3.height, subject_3.age, subject_3.excercise_level)
-    subject_3_recommendations, subject_3_distances = get_meal_recommendation_list(subject_3.sex, subject_3.weight, subject_3.height, subject_3.age, subject_3.excercise_level)
+    subject_3_nutrients = get_user_required_meal_nutrients(subject_3.sex, subject_3.weight, subject_3.height,
+                                                           subject_3.age, subject_3.excercise_level)
+    subject_3_recommendations, subject_3_distances = get_meal_recommendation_list(subject_3.sex, subject_3.weight,
+                                                                                  subject_3.height, subject_3.age,
+                                                                                  subject_3.excercise_level)
 
     print_experiment(subject_0, subject_0_nutrients, subject_0_recommendations, subject_0_distances)
     print_experiment(subject_1, subject_1_nutrients, subject_1_recommendations, subject_1_distances)

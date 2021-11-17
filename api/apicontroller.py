@@ -15,7 +15,7 @@ from classifiers.egvs.egvs_data_processor import process_data
 from classifiers.egvs.egvs_classifier import train_model
 from services.notification_service import send_notification
 from services.email_util_service import get_user_email, send_email
-from services.meal_recommendations_service import get_meal_recommendation_list
+from services.meal_recommendations_service import get_meal_recommendation_list, get_user_required_meal_nutrients
 from models.user import User
 from flask import request
 from models.recommendation_enums import *
@@ -97,7 +97,7 @@ def update_user(access_token, user_id, alexa_api_access_token):
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/updateUser/<string:alexa_api_access_token>/<string:sex>/<string:weight>/<string:height_m>/<string:age>',
+@app.route('/updateUserProfile/<string:alexa_api_access_token>/<string:sex>/<string:weight>/<string:height_m>/<string:age>',
            methods=['POST', 'GET'])
 def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age):
     gluco_doc_db = get_database()
