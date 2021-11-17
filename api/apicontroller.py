@@ -111,7 +111,7 @@ def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age
         result.rewind()
         user = get_user_from_dict(result.next())
         if sex != 'None':
-            user.sex = Sex.MALE.value if sex == 'male' else user.sex == Sex.FEMALE.value
+            user.sex = Sex.MALE.value if sex == 'male' else Sex.FEMALE.value
             edited = True
         if weight != 'None':
             user.weight = float(weight)
@@ -150,7 +150,7 @@ def get_meal_recommendations(alexa_api_access_token):
 
         if user.sex is not None and user.weight and user.height_cm and user.age:
             recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm, user.age,
-                                                                      ActivityFactor.MEDIUM.value)
+                                                                      user.activity_factor)
             return json.dumps({'success': True, 'recommendations': recommendations}), 200, {
                 'ContentType': 'application/json'}
         else:
@@ -250,22 +250,50 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
     user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
     meal_tsv = pd.read_csv('../classifiers/meals/filtered_dataset.tsv', sep='\t')
-    meal_row = meal_tsv.loc[meal_tsv['id'] == int(meal_id)]
+    json_row = json.loads(meal_tsv.loc[int(meal_id)]['meals'])
 
-    print(meal_row)
+    message = ''
 
-    json_row = json.loads(meal_row.loc['meals'])
-    names = ''
-
-    for dish in json_row['dishes']:
-        names += dish['name']
+    for meal in json_row:
+        message += meal['meal'] + ':\n'
+        for dish in meal['dishes']:
+            message += dish['name'] + ', '
+        message += '\n'
 
     if any(u['user_email'] == user_email for u in result):
         result.rewind()
         user_dict = result.next()
         user = get_user_from_dict(user_dict)
-        date = datetime.datetime.now().date()
-        send_email(user_email, "Your Meal Details (" + date + ")", names)
+
+        if user.sex is not None and user.weight and user.height_cm and user.age:
+            i = 0
+            prev_factor = 0
+            for factor in ActivityFactor:
+                if i != 0 and prev_factor == user.activity_factor:
+                    recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm,
+                                                                              user.age, factor.value)
+                    message += "\nIf you do " + str(factor.name).lower() + \
+                               " exercise, this could be your meal plan:\n\n"
+
+                    next_json_row = json.loads(meal_tsv.loc[int(recommendations[0]['id'])]['meals'])
+
+                    for meal in next_json_row:
+                        message += meal['meal'] + ':\n'
+                        for dish in meal['dishes']:
+                            message += dish['name'] + ', '
+                        message += '\n'
+
+                prev_factor = factor.value
+                i += 1
+
+    result.rewind()
+    if any(u['user_email'] == user_email for u in result):
+        result.rewind()
+        user_dict = result.next()
+        user = get_user_from_dict(user_dict)
+        date = datetime.now().date()
+        print(message)
+        send_email(user_email, "Your Meal Details (" + str(date) + ")", message)
 
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
