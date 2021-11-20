@@ -142,7 +142,7 @@ def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/getRecommendations/<string:alexa_api_access_token>', methods=['POST', 'GET'])
+@app.route('/getRecommendations/<string:alexa_api_access_token>', methods=['GET'])
 def get_meal_recommendations(alexa_api_access_token):
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']

@@ -17,7 +17,8 @@ def get_recommendations(nutrients: RequiredMealNutrients):
     meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t')
     meal_rows = meals[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
 
-    nbrs = pickle.load(open('meals_model.pkl', 'rb'))
+    nbrs = pickle.load(open(ROOT_DIR + '/meals_model.pkl', 'rb'))
+    #nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x)
 
     required_nutrients = {'calories': [nutrients.calories], 'proteins': [nutrients.proteins],
                           'fats': [nutrients.fats], 'carbohydrates': [nutrients.carbohydrates]}
