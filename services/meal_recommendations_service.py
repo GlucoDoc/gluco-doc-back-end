@@ -1,5 +1,7 @@
+import json
 from enum import Enum
 
+import pandas as pd
 from bson import Decimal128
 
 from models.meal_nutrients import get_required_meal_nutrients_from_calories
@@ -79,3 +81,24 @@ def convert_decimal128_to_float(parameter) -> float:
         parameter = parameter.to_decimal()
 
     return float(parameter)
+
+
+def generate_recommendation_email_content(meal_id):
+    meal_tsv = pd.read_csv('../classifiers/meals/filtered_dataset.tsv', sep='\t')
+    json_row = json.loads(meal_tsv.loc[int(meal_id)]['meals'])
+
+    html_message = open("recommendation_templates/header_template.html", "r").read()
+    cards = ''
+    for meal in json_row:
+        card = open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace("\t", " ")
+        dishes = ''
+        for dish in meal['dishes']:
+            dishes += open("recommendation_templates/list_item_template.html", "r").read().replace("\n", " ").replace(
+                "\t", " ").format(
+                listItem=dish['name'])
+        cards += card.format(title=meal['meal'], listItems=dishes)
+    html_message = html_message.replace('{cards}', cards)
+
+    html_message += open("recommendation_templates/footer_template.html", "r").read()
+
+    return html_message

@@ -15,7 +15,8 @@ from classifiers.egvs.egvs_data_processor import process_data
 from classifiers.egvs.egvs_classifier import train_model
 from services.notification_service import send_notification
 from services.email_util_service import get_user_email, send_email
-from services.meal_recommendations_service import get_meal_recommendation_list, get_user_required_meal_nutrients
+from services.meal_recommendations_service import get_meal_recommendation_list, get_user_required_meal_nutrients, \
+    generate_recommendation_email_content
 from models.user import User
 from flask import request
 from models.recommendation_enums import *
@@ -257,22 +258,7 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
         user_email = get_user_email(alexa_api_access_token)
         user_query = {"user_email": user_email}
         result = user_collection.find(user_query)
-        meal_tsv = pd.read_csv('../classifiers/meals/filtered_dataset.tsv', sep='\t')
-        json_row = json.loads(meal_tsv.loc[int(meal_id)]['meals'])
-
-        message = ''
-        html_message = open("recommendation_templates/recommendation_page.html", "r").read()
-        cards = ''
-        for meal in json_row:
-            card = open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace("\t", " ")
-            dishes = ''
-            for dish in meal['dishes']:
-                dishes += open("recommendation_templates/list_item_template.html", "r").read().replace("\n", " ").replace("\t", " ").format(
-                    listItem=dish['name'])
-            card.format(title=meal['meal'], listItems=dishes)
-            cards += card
-        html_message.replace('{cards}', cards)
-
+        html_message = generate_recommendation_email_content(meal_id)
         # if any(u['user_email'] == user_email for u in result):
         #     result.rewind()
         #     user_dict = result.next()
@@ -301,18 +287,20 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
         #             prev_factor = factor.value
         #             i += 1
 
-        result.rewind()
+        # result.rewind()
         if any(u['user_email'] == user_email for u in result):
             result.rewind()
             user_dict = result.next()
             user = get_user_from_dict(user_dict)
             date = datetime.now().date()
-
-            send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
+            # send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
 
     thread = threading.Thread(target=send_recommendation)
     thread.start()
-    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    html_message = generate_recommendation_email_content(meal_id)
+
+    return html_message, 200, {'ContentType': 'text/html'}
+    # return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
 @app.errorhandler(BadRequest)
