@@ -42,6 +42,12 @@ def default():
     return html_file.read()
 
 
+@app.route('/recommendationTemplate')
+def recommendation_template():
+    html_file = open("recommendation_templates/recommendation_page.html", "r")
+    return html_file.read()
+
+
 @app.route('/updateUser/<string:access_token>/<string:user_id>/<string:alexa_api_access_token>')
 def update_user(access_token, user_id, alexa_api_access_token):
     gluco_doc_db = get_database()
@@ -91,14 +97,15 @@ def update_user(access_token, user_id, alexa_api_access_token):
         else:
             train_m(user, True)
 
-    th = threading.Thread(target=train_model_thread)
-    th.start()
+    thread = threading.Thread(target=train_model_thread)
+    thread.start()
 
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/updateUserProfile/<string:alexa_api_access_token>/<string:sex>/<string:weight>/<string:height_m>/<string:age>',
-           methods=['POST', 'GET'])
+@app.route(
+    '/updateUserProfile/<string:alexa_api_access_token>/<string:sex>/<string:weight>/<string:height_m>/<string:age>',
+    methods=['POST', 'GET'])
 def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age):
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
@@ -244,57 +251,67 @@ def send_notifications(state=None):
 
 @app.route('/sendRecommendationEmail/<string:alexa_api_access_token>/<string:meal_id>', methods=['POST', 'GET'])
 def send_recommendation_email(alexa_api_access_token, meal_id):
-    gluco_doc_db = get_database()
-    user_collection = gluco_doc_db['User']
-    user_email = get_user_email(alexa_api_access_token)
-    user_query = {"user_email": user_email}
-    result = user_collection.find(user_query)
-    meal_tsv = pd.read_csv('../classifiers/meals/filtered_dataset.tsv', sep='\t')
-    json_row = json.loads(meal_tsv.loc[int(meal_id)]['meals'])
+    def send_recommendation():
+        gluco_doc_db = get_database()
+        user_collection = gluco_doc_db['User']
+        user_email = get_user_email(alexa_api_access_token)
+        user_query = {"user_email": user_email}
+        result = user_collection.find(user_query)
+        meal_tsv = pd.read_csv('../classifiers/meals/filtered_dataset.tsv', sep='\t')
+        json_row = json.loads(meal_tsv.loc[int(meal_id)]['meals'])
 
-    message = ''
+        message = ''
+        html_message = open("recommendation_templates/recommendation_page.html", "r").read()
+        cards = ''
+        for meal in json_row:
+            card = open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace("\t", " ")
+            dishes = ''
+            for dish in meal['dishes']:
+                dishes += open("recommendation_templates/list_item_template.html", "r").read().replace("\n", " ").replace("\t", " ").format(
+                    listItem=dish['name'])
+            card.format(title=meal['meal'], listItems=dishes)
+            cards += card
+        html_message.replace('{cards}', cards)
 
-    for meal in json_row:
-        message += meal['meal'] + ':\n'
-        for dish in meal['dishes']:
-            message += dish['name'] + ', '
-        message += '\n'
+        # if any(u['user_email'] == user_email for u in result):
+        #     result.rewind()
+        #     user_dict = result.next()
+        #     user = get_user_from_dict(user_dict)
+        #
+        #     if user.sex is not None and user.weight and user.height_cm and user.age:
+        #         i = 0
+        #         prev_factor = 0
+        #         for factor in ActivityFactor:
+        #             if i != 0 and prev_factor == user.activity_factor:
+        #                 recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm,
+        #                                                                           user.age, factor.value)
+        #                 message += "\nIf you do " + str(factor.name).lower() + \
+        #                            " exercise, this could be your meal plan:\n\n"
+        #
+        #                 next_json_row = json.loads(meal_tsv.loc[int(recommendations[0]['id'])]['meals'])
+        #
+        #                 for meal in next_json_row:
+        #                     message += meal['meal'] + ':\n'
+        #                     for dish in meal['dishes']:
+        #                         message += dish['name'] + ', '
+        #                     message += '\n'
+        #
+        #                 break
+        #
+        #             prev_factor = factor.value
+        #             i += 1
 
-    if any(u['user_email'] == user_email for u in result):
         result.rewind()
-        user_dict = result.next()
-        user = get_user_from_dict(user_dict)
+        if any(u['user_email'] == user_email for u in result):
+            result.rewind()
+            user_dict = result.next()
+            user = get_user_from_dict(user_dict)
+            date = datetime.now().date()
 
-        if user.sex is not None and user.weight and user.height_cm and user.age:
-            i = 0
-            prev_factor = 0
-            for factor in ActivityFactor:
-                if i != 0 and prev_factor == user.activity_factor:
-                    recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm,
-                                                                              user.age, factor.value)
-                    message += "\nIf you do " + str(factor.name).lower() + \
-                               " exercise, this could be your meal plan:\n\n"
+            send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
 
-                    next_json_row = json.loads(meal_tsv.loc[int(recommendations[0]['id'])]['meals'])
-
-                    for meal in next_json_row:
-                        message += meal['meal'] + ':\n'
-                        for dish in meal['dishes']:
-                            message += dish['name'] + ', '
-                        message += '\n'
-
-                prev_factor = factor.value
-                i += 1
-
-    result.rewind()
-    if any(u['user_email'] == user_email for u in result):
-        result.rewind()
-        user_dict = result.next()
-        user = get_user_from_dict(user_dict)
-        date = datetime.now().date()
-        print(message)
-        send_email(user_email, "Your Meal Details (" + str(date) + ")", message)
-
+    thread = threading.Thread(target=send_recommendation)
+    thread.start()
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
@@ -334,4 +351,4 @@ def update_locale(locale, user_email, gluco_doc_db):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5002)
+    app.run(debug=True, host='0.0.0.0', port=5000)

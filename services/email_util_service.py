@@ -19,7 +19,7 @@ def get_user_email(access_token):
     return str(response.json())
 
 
-def send_email(user_email, subject, message):
+def send_email(user_email, subject, message, message_type='plain'):
 
     # i18n.load_path.append('../i18n')
     # i18n.set('filename_format', locale + '.json')
@@ -33,7 +33,7 @@ def send_email(user_email, subject, message):
 
         smtp.login("no.reply.glucodoc@gmail.com", "glucodoc2016")
         # Create a text/plain message
-        msg = MIMEText(message)
+        msg = MIMEText(message, message_type)
         # me == the sender's email address
         # you == the recipient's email address
         msg['Subject'] = subject

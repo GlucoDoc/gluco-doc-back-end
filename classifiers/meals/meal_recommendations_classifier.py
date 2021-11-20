@@ -6,16 +6,17 @@ from sklearn.neighbors import NearestNeighbors
 import pandas as pd
 
 from models.meal_nutrients import RequiredMealNutrients
+from joblib import dump, load
+
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_recommendations(nutrients: RequiredMealNutrients):
     meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t')
-    x = meals[['calories', 'proteins', 'fats', 'carbohydrates']]
     meal_rows = meals[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
 
-    nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x)
+    nbrs = load(ROOT_DIR + '/meals_model.joblib')
 
     required_nutrients = {'calories': [nutrients.calories], 'proteins': [nutrients.proteins],
                           'fats': [nutrients.fats], 'carbohydrates': [nutrients.carbohydrates]}
