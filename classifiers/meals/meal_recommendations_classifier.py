@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import pickle
 
 from sklearn.neighbors import NearestNeighbors
 import pandas as pd
@@ -16,7 +17,7 @@ def get_recommendations(nutrients: RequiredMealNutrients):
     meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t')
     meal_rows = meals[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
 
-    nbrs = load(ROOT_DIR + '/meals_model.joblib')
+    nbrs = pickle.load(open('meals_model.pkl', 'rb'))
 
     required_nutrients = {'calories': [nutrients.calories], 'proteins': [nutrients.proteins],
                           'fats': [nutrients.fats], 'carbohydrates': [nutrients.carbohydrates]}
