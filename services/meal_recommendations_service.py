@@ -94,6 +94,11 @@ def generate_recommendation_email_content(meal_id):
         meal_section_temp = open("recommendation_templates/meal_section_template.html", "r").read().replace("\n", " ")\
             .replace("\t", " ")
         dishes = ''
+        rows = ''
+        i = 0
+        dish_count = len(meal['dishes'])
+        card1 = ''
+        card2 = ''
         for dish in meal['dishes']:
             nutritional_facts = ''
             for nutrition in dish['nutritions']:
@@ -102,20 +107,30 @@ def generate_recommendation_email_content(meal_id):
                                                                                                            " ").replace(
                         "\t", " ").format(
                         listItem=nutrition['name'], value=nutrition['value'])
-            dishes += open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace(
+            dishes = open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace(
                 "\t", " ").format(
                 dishName=dish['name'], listItems=nutritional_facts)
-        meal_section += meal_section_temp.format(title=meal['meal'], cards=dishes)
-    html_message = html_message.replace('{content}', meal_section)
+            if dish_count == 1 and card1 == '':
+                rows += open("recommendation_templates/card_row_template.html", "r").read().replace("\n",
+                                                                                                    " ").replace(
+                    "\t", " ").format(card1=dishes, card2='')
+                card1 = ''
+                card2 = ''
+            else:
+                if i % 2 == 0:
+                    card1 += dishes
+                else:
+                    card2 += dishes
+                    rows += open("recommendation_templates/card_row_template.html", "r").read().replace("\n",
+                                                                                                        " ").replace(
+                        "\t", " ").format(card1=card1, card2=card2)
+                    card1 = ''
+                    card2 = ''
+            dish_count -= 1
+            i += 1
+        meal_section += meal_section_temp.format(title=meal['meal'], cards=rows)
 
-    #     card = open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace("\t", " ")
-    #     dishes = ''
-    #     for dish in meal['dishes']:
-    #         dishes += open("recommendation_templates/list_item_template.html", "r").read().replace("\n", " ").replace(
-    #             "\t", " ").format(
-    #             listItem=dish['name'])
-    #     cards += card.format(title=meal['meal'], listItems=dishes)
-    # html_message = html_message.replace('{cards}', cards)
+    html_message = html_message.replace('{content}', meal_section)
 
     html_message += open("recommendation_templates/footer_template.html", "r").read()
 

@@ -259,33 +259,6 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
         user_query = {"user_email": user_email}
         result = user_collection.find(user_query)
         html_message = generate_recommendation_email_content(meal_id)
-        # if any(u['user_email'] == user_email for u in result):
-        #     result.rewind()
-        #     user_dict = result.next()
-        #     user = get_user_from_dict(user_dict)
-        #
-        #     if user.sex is not None and user.weight and user.height_cm and user.age:
-        #         i = 0
-        #         prev_factor = 0
-        #         for factor in ActivityFactor:
-        #             if i != 0 and prev_factor == user.activity_factor:
-        #                 recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm,
-        #                                                                           user.age, factor.value)
-        #                 message += "\nIf you do " + str(factor.name).lower() + \
-        #                            " exercise, this could be your meal plan:\n\n"
-        #
-        #                 next_json_row = json.loads(meal_tsv.loc[int(recommendations[0]['id'])]['meals'])
-        #
-        #                 for meal in next_json_row:
-        #                     message += meal['meal'] + ':\n'
-        #                     for dish in meal['dishes']:
-        #                         message += dish['name'] + ', '
-        #                     message += '\n'
-        #
-        #                 break
-        #
-        #             prev_factor = factor.value
-        #             i += 1
 
         # result.rewind()
         if any(u['user_email'] == user_email for u in result):
@@ -293,14 +266,14 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
             user_dict = result.next()
             user = get_user_from_dict(user_dict)
             date = datetime.now().date()
-            # send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
+            send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
 
     thread = threading.Thread(target=send_recommendation)
     thread.start()
-    html_message = generate_recommendation_email_content(meal_id)
+    # html_message = generate_recommendation_email_content(meal_id)
 
-    return html_message, 200, {'ContentType': 'text/html'}
-    # return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    # return html_message, 200, {'ContentType': 'text/html'}
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
 @app.errorhandler(BadRequest)
