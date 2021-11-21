@@ -88,6 +88,7 @@ def generate_recommendation_email_content(meal_id):
     json_row = json.loads(meal_tsv.loc[int(meal_id)]['meals'])
 
     html_message = open("recommendation_templates/header_template.html", "r").read()
+    macronutrients_to_display = ['Calories', 'Carbs', 'Carbohydrates', 'Fat', 'Fats', 'Protein', 'Proteins']
     meal_section = ''
     for meal in json_row:
         meal_section_temp = open("recommendation_templates/meal_section_template.html", "r").read().replace("\n", " ")\
@@ -96,10 +97,11 @@ def generate_recommendation_email_content(meal_id):
         for dish in meal['dishes']:
             nutritional_facts = ''
             for nutrition in dish['nutritions']:
-                nutritional_facts += open("recommendation_templates/list_item_template.html", "r").read().replace("\n",
-                                                                                                       " ").replace(
-                    "\t", " ").format(
-                    listItem=nutrition['name'], value=nutrition['value'])
+                if nutrition['name'] in macronutrients_to_display:
+                    nutritional_facts += open("recommendation_templates/list_item_template.html", "r").read().replace("\n",
+                                                                                                           " ").replace(
+                        "\t", " ").format(
+                        listItem=nutrition['name'], value=nutrition['value'])
             dishes += open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace(
                 "\t", " ").format(
                 dishName=dish['name'], listItems=nutritional_facts)
