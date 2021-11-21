@@ -5,7 +5,7 @@ import pandas as pd
 from bson import Decimal128
 
 from models.meal_nutrients import get_required_meal_nutrients_from_calories
-from classifiers.meals.meal_recommendations_classifier import get_recommendations
+from classifiers.meals.meal_recommendations_classifier import get_recommendations, train_meal_model
 
 
 class Sex(Enum):
@@ -135,3 +135,7 @@ def generate_recommendation_email_content(meal_id):
     html_message += open("recommendation_templates/footer_template.html", "r").read()
 
     return html_message
+
+
+def train_meal_model():
+    train_meal_model()

@@ -16,7 +16,7 @@ from classifiers.egvs.egvs_classifier import train_model
 from services.notification_service import send_notification
 from services.email_util_service import get_user_email, send_email
 from services.meal_recommendations_service import get_meal_recommendation_list, get_user_required_meal_nutrients, \
-    generate_recommendation_email_content
+    generate_recommendation_email_content, train_meal_model
 from models.user import User
 from flask import request
 from models.recommendation_enums import *
@@ -275,6 +275,10 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
     # return html_message, 200, {'ContentType': 'text/html'}
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
+
+@app.route('/trainMealModel')
+def train_meal_model():
+    train_meal_model()
 
 @app.errorhandler(BadRequest)
 def handle_bad_request(e):
