@@ -88,16 +88,32 @@ def generate_recommendation_email_content(meal_id):
     json_row = json.loads(meal_tsv.loc[int(meal_id)]['meals'])
 
     html_message = open("recommendation_templates/header_template.html", "r").read()
-    cards = ''
+    meal_section = ''
     for meal in json_row:
-        card = open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace("\t", " ")
+        meal_section_temp = open("recommendation_templates/meal_section_template.html", "r").read().replace("\n", " ")\
+            .replace("\t", " ")
         dishes = ''
         for dish in meal['dishes']:
-            dishes += open("recommendation_templates/list_item_template.html", "r").read().replace("\n", " ").replace(
+            nutritional_facts = ''
+            for nutrition in dish['nutritions']:
+                nutritional_facts += open("recommendation_templates/list_item_template.html", "r").read().replace("\n",
+                                                                                                       " ").replace(
+                    "\t", " ").format(
+                    listItem=nutrition['name'], value=nutrition['value'])
+            dishes += open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace(
                 "\t", " ").format(
-                listItem=dish['name'])
-        cards += card.format(title=meal['meal'], listItems=dishes)
-    html_message = html_message.replace('{cards}', cards)
+                dishName=dish['name'], listItems=nutritional_facts)
+        meal_section += meal_section_temp.format(title=meal['meal'], cards=dishes)
+    html_message = html_message.replace('{content}', meal_section)
+
+    #     card = open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace("\t", " ")
+    #     dishes = ''
+    #     for dish in meal['dishes']:
+    #         dishes += open("recommendation_templates/list_item_template.html", "r").read().replace("\n", " ").replace(
+    #             "\t", " ").format(
+    #             listItem=dish['name'])
+    #     cards += card.format(title=meal['meal'], listItems=dishes)
+    # html_message = html_message.replace('{cards}', cards)
 
     html_message += open("recommendation_templates/footer_template.html", "r").read()
 
