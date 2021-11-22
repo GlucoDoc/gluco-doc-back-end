@@ -16,16 +16,16 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 def train_meal_model():
     meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t')
     x = meals[['calories', 'proteins', 'fats', 'carbohydrates']]
-    file = open('meals_model.pkl', 'wb')
+    file = open(ROOT_DIR + '/meals_model.pkl', 'wb')
     nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x.sample(frac=80))
     pickle.dump(nbrs, file)
+
 
 def get_recommendations(nutrients: RequiredMealNutrients):
     meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t')
     meal_rows = meals[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
 
     nbrs = pickle.load(open(ROOT_DIR + '/meals_model.pkl', 'rb'))
-    #nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x)
 
     required_nutrients = {'calories': [nutrients.calories], 'proteins': [nutrients.proteins],
                           'fats': [nutrients.fats], 'carbohydrates': [nutrients.carbohydrates]}

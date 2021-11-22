@@ -258,13 +258,12 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
         user_email = get_user_email(alexa_api_access_token)
         user_query = {"user_email": user_email}
         result = user_collection.find(user_query)
-        html_message = generate_recommendation_email_content(meal_id)
 
-        # result.rewind()
         if any(u['user_email'] == user_email for u in result):
             result.rewind()
             user_dict = result.next()
             user = get_user_from_dict(user_dict)
+            html_message = generate_recommendation_email_content(meal_id, user)
             date = datetime.now().date()
             send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
 
@@ -277,8 +276,9 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
 
 
 @app.route('/trainMealModel')
-def train_meal_model():
+def train_meal_model_controller():
     train_meal_model()
+
 
 @app.errorhandler(BadRequest)
 def handle_bad_request(e):

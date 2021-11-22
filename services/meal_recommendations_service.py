@@ -83,15 +83,41 @@ def convert_decimal128_to_float(parameter) -> float:
     return float(parameter)
 
 
-def generate_recommendation_email_content(meal_id):
+def generate_recommendation_email_content(meal_id, user):
     meal_tsv = pd.read_csv('../classifiers/meals/filtered_dataset.tsv', sep='\t')
     json_row = json.loads(meal_tsv.loc[int(meal_id)]['meals'])
 
     html_message = open("recommendation_templates/header_template.html", "r").read()
+    meal_section = generate_dishes_html(json_row)
+
+    if user.sex is not None and user.weight and user.height_cm and user.age:
+        i = 0
+        prev_factor = 0
+        for factor in ActivityFactor:
+            if i != 0 and prev_factor == user.activity_factor:
+                recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm,
+                                                                          user.age, factor.value)
+                meal_section += open("recommendation_templates/activity_title_template.html", "r").read().replace(
+                    '{title}', 'If you do ' + str(factor.name).lower() + ' exercise, you could eat...')
+                next_json_row = json.loads(meal_tsv.loc[int(recommendations[0]['id'])]['meals'])
+
+                meal_section += generate_dishes_html(next_json_row)
+                break
+            prev_factor = factor.value
+            i += 1
+
+    html_message = html_message.replace('{content}', meal_section)
+
+    html_message += open("recommendation_templates/footer_template.html", "r").read()
+
+    return html_message
+
+
+def generate_dishes_html(meal_recommendation):
     macronutrients_to_display = ['Calories', 'Carbs', 'Carbohydrates', 'Fat', 'Fats', 'Protein', 'Proteins']
     meal_section = ''
-    for meal in json_row:
-        meal_section_temp = open("recommendation_templates/meal_section_template.html", "r").read().replace("\n", " ")\
+    for meal in meal_recommendation:
+        meal_section_temp = open("recommendation_templates/meal_section_template.html", "r").read().replace("\n", " ") \
             .replace("\t", " ")
         dishes = ''
         rows = ''
@@ -103,10 +129,9 @@ def generate_recommendation_email_content(meal_id):
             nutritional_facts = ''
             for nutrition in dish['nutritions']:
                 if nutrition['name'] in macronutrients_to_display:
-                    nutritional_facts += open("recommendation_templates/list_item_template.html", "r").read().replace("\n",
-                                                                                                           " ").replace(
-                        "\t", " ").format(
-                        listItem=nutrition['name'], value=nutrition['value'])
+                    nutritional_facts += open("recommendation_templates/list_item_template.html", "r").read() \
+                        .replace("\n", " ").replace("\t", " ").format(listItem=nutrition['name'],
+                                                                      value=nutrition['value'])
             dishes = open("recommendation_templates/card_template.html", "r").read().replace("\n", " ").replace(
                 "\t", " ").format(
                 dishName=dish['name'], listItems=nutritional_facts)
@@ -130,12 +155,4 @@ def generate_recommendation_email_content(meal_id):
             i += 1
         meal_section += meal_section_temp.format(title=meal['meal'], cards=rows)
 
-    html_message = html_message.replace('{content}', meal_section)
-
-    html_message += open("recommendation_templates/footer_template.html", "r").read()
-
-    return html_message
-
-
-def train_meal_model():
-    train_meal_model()
+    return meal_section
