@@ -6,20 +6,23 @@ import ssl
 import threading
 import json
 import i18n
-import pandas as pd
 
 from datetime import datetime, timedelta
 from flask import Flask
 from werkzeug.exceptions import BadRequest
 from classifiers.egvs.egvs_data_processor import process_data
 from classifiers.egvs.egvs_classifier import train_model
+from services import alexa_api_service, meal_recommendations_service
 from services.notification_service import send_notification
-from services.email_util_service import get_user_email, send_email
-from services.meal_recommendations_service import get_meal_recommendation_list, get_user_required_meal_nutrients, \
-    generate_recommendation_email_content, train_meal_model
+from services.email_util_service import send_email
+import services.meal_recommendations_service
 from models.user import User
 from flask import request
 from models.recommendation_enums import *
+
+import services.alexa_api_service
+
+import pytz
 
 # Creation of the Flask app
 app = Flask(__name__)
@@ -46,6 +49,7 @@ def default():
 @app.route('/recommendationTemplate')
 def recommendation_template():
     html_file = open("recommendation_templates/recommendation_page.html", "r")
+
     return html_file.read()
 
 
@@ -82,7 +86,7 @@ def update_user(access_token, user_id, alexa_api_access_token):
 
     def train_model_thread():
 
-        user_email = get_user_email(alexa_api_access_token)
+        user_email = alexa_api_service.get_user_email(alexa_api_access_token)
         user = User(user_id, None, None, user_email, user_locale)
 
         user_query = {"user_email": user_email}
@@ -110,7 +114,7 @@ def update_user(access_token, user_id, alexa_api_access_token):
 def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age):
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
-    user_email = get_user_email(alexa_api_access_token)
+    user_email = alexa_api_service.get_user_email(alexa_api_access_token)
     user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
     edited = False
@@ -143,11 +147,11 @@ def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/getRecommendations/<string:alexa_api_access_token>', methods=['GET'])
-def get_meal_recommendations(alexa_api_access_token):
+@app.route('/getRecommendations/<string:alexa_api_access_token>/<string:device_id>', methods=['GET'])
+def get_meal_recommendations(alexa_api_access_token, device_id):
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
-    user_email = get_user_email(alexa_api_access_token)
+    user_email = alexa_api_service.get_user_email(alexa_api_access_token)
     user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
 
@@ -155,11 +159,28 @@ def get_meal_recommendations(alexa_api_access_token):
         result.rewind()
         user_dict = result.next()
         user = get_user_from_dict(user_dict)
+        user_timezone_name = alexa_api_service.get_user_timezone(alexa_api_access_token, device_id)
+        time_zone = pytz.timezone(user_timezone_name)
+        timezone_time = datetime.now(time_zone).time().hour
 
         if user.sex is not None and user.weight and user.height_cm and user.age:
-            recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm, user.age,
-                                                                      user.activity_factor)
-            return json.dumps({'success': True, 'recommendations': recommendations}), 200, {
+            recommendations, distances = meal_recommendations_service.get_meal_recommendation_list(user.sex,
+                                                                                                   user.weight,
+                                                                                                   user.height_cm,
+                                                                                                   user.age,
+                                                                                                   user.activity_factor,
+                                                                                                   int(timezone_time))
+
+            meal_type = ''
+
+            if int(timezone_time) < 12:
+                meal_type = 'breakfast'
+            elif 11 < int(timezone_time) < 18:
+                meal_type = 'lunch'
+            else:
+                meal_type = 'dinner'
+
+            return json.dumps({'success': True, 'recommendations': recommendations, 'meal_type': meal_type}), 200, {
                 'ContentType': 'application/json'}
         else:
             return json.dumps({'success': False,
@@ -174,7 +195,7 @@ def get_meal_recommendations(alexa_api_access_token):
 def date_time_prediction(weekday, time, alexa_api_access_token):
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
-    user_email = get_user_email(alexa_api_access_token)
+    user_email = alexa_api_service.get_user_email(alexa_api_access_token)
     user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
 
@@ -255,7 +276,7 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
     def send_recommendation():
         gluco_doc_db = get_database()
         user_collection = gluco_doc_db['User']
-        user_email = get_user_email(alexa_api_access_token)
+        user_email = alexa_api_service.get_user_email(alexa_api_access_token)
         user_query = {"user_email": user_email}
         result = user_collection.find(user_query)
 
@@ -263,7 +284,7 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
             result.rewind()
             user_dict = result.next()
             user = get_user_from_dict(user_dict)
-            html_message = generate_recommendation_email_content(meal_id, user)
+            html_message = meal_recommendations_service.generate_recommendation_email_content(meal_id, user)
             date = datetime.now().date()
             send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
 
@@ -277,7 +298,7 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
 
 @app.route('/trainMealModel')
 def train_meal_model_controller():
-    train_meal_model()
+    meal_recommendations_service.train_meal_model()
 
 
 @app.errorhandler(BadRequest)

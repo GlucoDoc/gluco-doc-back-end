@@ -1,22 +1,5 @@
-import i18n
-import requests
 import smtplib
 from email.mime.text import MIMEText
-
-
-ALEXA_URI = "https://api.amazonalexa.com/v2/accounts/~current/settings/Profile.email"
-
-
-def get_user_email(access_token):
-
-    headers = {
-        "Authorization": "Bearer {}".format(access_token),
-        "Content-Type": "application/json"
-    }
-
-    response = requests.get(ALEXA_URI, headers=headers, allow_redirects=True)
-
-    return str(response.json())
 
 
 def send_email(user_email, subject, message, message_type='plain'):
@@ -32,16 +15,11 @@ def send_email(user_email, subject, message, message_type='plain'):
         smtp.ehlo()
 
         smtp.login("no.reply.glucodoc@gmail.com", "glucodoc2016")
-        # Create a text/plain message
+
         msg = MIMEText(message, message_type)
-        # me == the sender's email address
-        # you == the recipient's email address
         msg['Subject'] = subject
         msg['From'] = "no-reply@glucodoc.com"
         msg['To'] = user_email
-
-        # Send the message via our own SMTP server, but don't include the
-        # envelope header.
 
         smtp.sendmail("no.reply.glucodoc@gmail.com", [user_email], msg.as_string())
         smtp.quit()

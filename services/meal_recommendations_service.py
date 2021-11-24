@@ -66,14 +66,14 @@ def get_user_required_meal_nutrients(user_sex, weight, height_cm, age, activity_
     return nutrients
 
 
-def get_meal_recommendation_list(user_sex, weight, height_cm, age, activity_factor):
+def get_meal_recommendation_list(user_sex, weight, height_cm, age, activity_factor, time_hour):
     required_meal_nutrients = get_user_required_meal_nutrients(
         user_sex,
         convert_decimal128_to_float(weight),
         convert_decimal128_to_float(height_cm),
         age,
         activity_factor)
-    return get_recommendations(required_meal_nutrients)
+    return get_recommendations(required_meal_nutrients, time_hour)
 
 
 def convert_decimal128_to_float(parameter) -> float:
@@ -96,7 +96,7 @@ def generate_recommendation_email_content(meal_id, user):
         for factor in ActivityFactor:
             if i != 0 and prev_factor == user.activity_factor:
                 recommendations, distances = get_meal_recommendation_list(user.sex, user.weight, user.height_cm,
-                                                                          user.age, factor.value)
+                                                                          user.age, factor.value, 1)
                 meal_section += open("recommendation_templates/activity_title_template.html", "r").read().replace(
                     '{title}', 'If you do ' + str(factor.name).lower() + ' exercise, you could eat...')
                 next_json_row = json.loads(meal_tsv.loc[int(recommendations[0]['id'])]['meals'])

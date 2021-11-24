@@ -9,7 +9,6 @@ import pandas as pd
 from models.meal_nutrients import RequiredMealNutrients
 from joblib import dump, load
 
-
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -21,7 +20,7 @@ def train_meal_model():
     pickle.dump(nbrs, file)
 
 
-def get_recommendations(nutrients: RequiredMealNutrients):
+def get_recommendations(nutrients: RequiredMealNutrients, time_hour):
     meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t')
     meal_rows = meals[['id', 'calories', 'proteins', 'fats', 'carbohydrates', 'meals']]
 
@@ -36,30 +35,44 @@ def get_recommendations(nutrients: RequiredMealNutrients):
 
     meal_names = []
 
+    meal_type = ''
+
+    if time_hour < 12:
+        meal_type = 'Breakfast'
+    elif 11 < time_hour < 18:
+        meal_type = 'Lunch'
+    else:
+        meal_type = 'Dinner'
+
     for i in indexes[0]:
         meal_dishes = json.loads(meal_rows.loc[i]['meals'])
         names = ''
         max_calories = 0
         max_calorie_meal_index = 0
         max_calorie_dish_index = 0
+        max_nutrition = None
 
         for meal_index in range(len(meal_dishes)):
-            for dish_index in range(len(meal_dishes[meal_index]['dishes'])):
-                dish_calories = float(filter_totals('Calories', meal_dishes[meal_index]['dishes'][dish_index]['nutritions']))
-                if dish_calories > max_calories:
-                    max_calories = dish_calories
-                    max_calorie_meal_index = meal_index
-                    max_calorie_dish_index = dish_index
+
+            if meal_dishes[meal_index]['meal'] == meal_type:
+                for dish_index in range(len(meal_dishes[meal_index]['dishes'])):
+                    dish_calories = float(
+                        filter_totals('Calories', meal_dishes[meal_index]['dishes'][dish_index]['nutritions']))
+                    if dish_calories > max_calories:
+                        max_calories = dish_calories
+                        max_calorie_meal_index = meal_index
+                        max_calorie_dish_index = dish_index
 
         names += meal_dishes[max_calorie_meal_index]['dishes'][max_calorie_dish_index]['name']
+        max_nutrition = meal_dishes[max_calorie_meal_index]['dishes'][max_calorie_dish_index]['nutritions']
 
         meal_names.append({
             'id': str(i),
             'name': names,
-            'calories': float(meal_rows.loc[i]['calories']),
-            'proteins': float(meal_rows.loc[i]['proteins']),
-            'fats': float(meal_rows.loc[i]['fats']),
-            'carbohydrates': float(meal_rows.loc[i]['carbohydrates'])
+            'calories': float(max_nutrition[0]['value']),
+            'proteins': float(max_nutrition[3]['value']),
+            'fats': float(max_nutrition[2]['value']),
+            'carbohydrates': float(max_nutrition[1]['value'])
         })
 
     return meal_names, distances
