@@ -18,7 +18,7 @@ class RequiredMealNutrients:
 
 
 def get_required_meal_nutrients_from_calories(calories):
-    carbohydrates = ( calories * RECOMMENDED_CARBOHYDRATE_FACTOR) / 4
+    carbohydrates = (calories * RECOMMENDED_CARBOHYDRATE_FACTOR) / 4
     proteins = (calories * RECOMMENDED_PROTEIN_FACTOR) / 4
     fats = (calories * RECOMMENDED_FATS_FACTOR) / 9
     return RequiredMealNutrients(calories, carbohydrates, proteins, fats)

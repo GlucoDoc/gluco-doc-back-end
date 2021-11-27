@@ -62,11 +62,10 @@ def get_user_required_meal_nutrients(user_sex, weight, height_cm, age, activity_
     user_basal_calories = calculate_basal_calories(user_sex, weight, height_cm, age, activity_factor)
     nutrients = get_required_meal_nutrients_from_calories(user_basal_calories)
     nutrients.fats = nutrients.calories * 0.15 if calculate_bmi(weight, height_cm) >= 25 else nutrients.fats
-    nutrients.proteins = weight * 0.8
     return nutrients
 
 
-def get_meal_recommendation_list(user_sex, weight, height_cm, age, activity_factor, time_hour):
+def get_meal_recommendation_list(user_sex, weight, height_cm, age, activity_factor, time_hour=0):
     required_meal_nutrients = get_user_required_meal_nutrients(
         user_sex,
         convert_decimal128_to_float(weight),

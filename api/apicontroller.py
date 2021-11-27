@@ -288,6 +288,7 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
             date = datetime.now().date()
             send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
 
+
     thread = threading.Thread(target=send_recommendation)
     thread.start()
     # html_message = generate_recommendation_email_content(meal_id)
