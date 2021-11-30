@@ -16,7 +16,7 @@ def train_meal_model():
     meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t')
     x = meals[['calories', 'proteins', 'fats', 'carbohydrates']]
     file = open(ROOT_DIR + '/meals_model.pkl', 'wb')
-    nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x.sample(frac=80))
+    nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x.sample(frac=0.7))
     pickle.dump(nbrs, file)
 
 

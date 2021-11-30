@@ -288,6 +288,7 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
             date = datetime.now().date()
             send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
 
+
     thread = threading.Thread(target=send_recommendation)
     thread.start()
     # html_message = generate_recommendation_email_content(meal_id)
@@ -296,9 +297,10 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/trainMealModel')
+@app.route('/trainMealModel', methods=['GET'])
 def train_meal_model_controller():
     meal_recommendations_service.train_meal_model()
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
 @app.errorhandler(BadRequest)
