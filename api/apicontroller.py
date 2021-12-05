@@ -135,7 +135,7 @@ def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age
         if age != 'None':
             user.age = int(age)
             edited = True
-        user.activity_factor = ActivityFactor.SEDENTARY.value
+        user.activity_factor = ActivityFactor.HARD.value
         if edited:
             user.profile_modification_date = datetime.now()
             user_update = {"$set": user.__dict__}
@@ -148,7 +148,9 @@ def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age
 
 
 @app.route('/getRecommendations/<string:alexa_api_access_token>/<string:device_id>', methods=['GET'])
-def get_meal_recommendations(alexa_api_access_token, device_id):
+@app.route('/getRecommendations/<string:alexa_api_access_token>/<string:device_id>/<string:meal_type>', methods=['GET'])
+def get_meal_recommendations(alexa_api_access_token, device_id, meal_type=None):
+    print(meal_type)
     gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
     user_email = alexa_api_service.get_user_email(alexa_api_access_token)
@@ -159,9 +161,19 @@ def get_meal_recommendations(alexa_api_access_token, device_id):
         result.rewind()
         user_dict = result.next()
         user = get_user_from_dict(user_dict)
-        user_timezone_name = alexa_api_service.get_user_timezone(alexa_api_access_token, device_id)
-        time_zone = pytz.timezone(user_timezone_name)
-        timezone_time = datetime.now(time_zone).time().hour
+        timezone_time = ''
+
+        if meal_type is None:
+            user_timezone_name = alexa_api_service.get_user_timezone(alexa_api_access_token, device_id)
+            time_zone = pytz.timezone(user_timezone_name)
+            timezone_time = datetime.now(time_zone).time().hour
+        else:
+            if meal_type == 'breakfast':
+                timezone_time = 7
+            elif meal_type == 'lunch':
+                timezone_time = 15
+            else:
+                timezone_time = 20
 
         if user.sex is not None and user.weight and user.height_cm and user.age:
             recommendations, distances = meal_recommendations_service.get_meal_recommendation_list(user.sex,
@@ -287,7 +299,6 @@ def send_recommendation_email(alexa_api_access_token, meal_id):
             html_message = meal_recommendations_service.generate_recommendation_email_content(meal_id, user)
             date = datetime.now().date()
             send_email(user_email, "Your Meal Details (" + str(date) + ")", html_message, 'html')
-
 
     thread = threading.Thread(target=send_recommendation)
     thread.start()

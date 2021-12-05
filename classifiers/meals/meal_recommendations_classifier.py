@@ -16,7 +16,7 @@ def train_meal_model():
     meals = pd.read_csv(ROOT_DIR + '/filtered_dataset.tsv', sep='\t')
     x = meals[['calories', 'proteins', 'fats', 'carbohydrates']]
     file = open(ROOT_DIR + '/meals_model.pkl', 'wb')
-    nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x.sample(frac=0.7))
+    nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto', metric='euclidean').fit(x)
     pickle.dump(nbrs, file)
 
 
@@ -69,7 +69,7 @@ def get_recommendations(nutrients: RequiredMealNutrients, time_hour):
         meal_names.append({
             'id': str(i),
             'name': names,
-            'calories': float(max_nutrition[0]['value']),
+            'calories': float(max_nutrition[0]['value'].replace(',', '')),
             'proteins': float(max_nutrition[3]['value']),
             'fats': float(max_nutrition[2]['value']),
             'carbohydrates': float(max_nutrition[1]['value'])

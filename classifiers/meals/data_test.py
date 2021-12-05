@@ -2,7 +2,6 @@ import pandas as pd
 import csv
 import json
 import os
-import pandas as pd
 
 data_file = pd.read_csv("processed_meals.tsv", sep='\t', encoding='utf-8')
 indexes = []
