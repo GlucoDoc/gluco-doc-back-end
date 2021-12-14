@@ -10,8 +10,9 @@
         "meal_recommendation": {
             "breakfast": "desayuno",
             "lunch": "almuerzo",
-            "dinner": "cena"
-
+            "dinner": "cena",
+            "incompleteProfile": "Su perfil esta incompleto, porfavor llene su perfil",
+            "userNotFoud": "No se pudo encontrar su usuario"
         }
     }
 }

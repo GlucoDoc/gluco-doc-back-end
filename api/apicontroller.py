@@ -186,7 +186,7 @@ def get_meal_recommendations(alexa_api_access_token, device_id, meal_type=None):
 
         i18n.set('filename_format', user_locale + '.json')
         i18n.set('skip_locale_root_data', True)
-
+        print(user_locale)
         if meal_type is None:
             user_timezone_name = alexa_api_service.get_user_timezone(alexa_api_access_token, device_id)
             time_zone = pytz.timezone(user_timezone_name)
@@ -220,10 +220,10 @@ def get_meal_recommendations(alexa_api_access_token, device_id, meal_type=None):
                 'ContentType': 'application/json'}
         else:
             return json.dumps({'success': False,
-                               'error_message': 'Seems like your profile is incomplete, please fill out your profile data'}), 412, {
+                               'error_message': i18n.t("main.meal_recommendation.incompleteProfile")}), 412, {
                        'ContentType': 'application/json'}
     else:
-        return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {
+        return json.dumps({'success': False, 'error_message': i18n.t("main.meal_recommendation.userNotFound")}), 404, {
             'ContentType': 'application/json'}
 
 

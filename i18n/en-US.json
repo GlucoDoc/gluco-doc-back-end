@@ -10,7 +10,9 @@
         "meal_recommendation": {
             "breakfast": "breakfast",
             "lunch": "lunch",
-            "dinner": "dinner"
+            "dinner": "dinner",
+            "incompleteProfile": "Seems like your profile is incomplete, please fill out your profile data",
+            "userNotFoud": "Could not find user"
 
         }
     }
