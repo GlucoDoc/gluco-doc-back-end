@@ -6,6 +6,12 @@
             "hypoglycemia": "hipoglucemia",
             "normal": "normal",
             "subject": "Alerta Gluco Doc"
+        },
+        "meal_recommendation": {
+            "breakfast": "desayuno",
+            "lunch": "almuerzo",
+            "dinner": "cena"
+
         }
     }
 }

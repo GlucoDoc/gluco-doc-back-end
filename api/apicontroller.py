@@ -36,13 +36,29 @@ os.environ['HYPOGLYCEMIA_THRESHOLD'] = "70"
 i18n.load_path.append('../i18n')
 
 
-# i18n.set('filename_format', locale + '.json')
-# i18n.set('skip_locale_root_data', True)
+def test():
+    gluco_doc_db = get_database()
+    user_collection = gluco_doc_db['User']
+    user_email = 'nativacu@gmail.com'
+    user_query = {"user_email": user_email}
+    result = user_collection.find(user_query)
+
+    if any(u['user_email'] == user_email for u in result):
+        result.rewind()
+        user_dict = result.next()
+        user = get_user_from_dict(user_dict)
+        classified_model = pickle.loads(user.model)
+        for i in range(7):
+            for j in range(24):
+                result = classified_model.predict([[str(i), str(j)]])
+                print('week:' + str(i) + ' hour:' + str(j) + ' prediction:' + str(result))
 
 
 @app.route('/')
 def default():
     html_file = open("default_api_page.html", "r")
+    thread = threading.Thread(target=test)
+    thread.start()
     return html_file.read()
 
 
@@ -112,38 +128,42 @@ def update_user(access_token, user_id, alexa_api_access_token):
     '/updateUserProfile/<string:alexa_api_access_token>/<string:sex>/<string:weight>/<string:height_m>/<string:age>',
     methods=['POST', 'GET'])
 def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age):
-    gluco_doc_db = get_database()
-    user_collection = gluco_doc_db['User']
-    user_email = alexa_api_service.get_user_email(alexa_api_access_token)
-    user_query = {"user_email": user_email}
-    result = user_collection.find(user_query)
-    edited = False
+    def update_profile():
+        gluco_doc_db = get_database()
+        user_collection = gluco_doc_db['User']
+        user_email = alexa_api_service.get_user_email(alexa_api_access_token)
+        user_query = {"user_email": user_email}
+        result = user_collection.find(user_query)
+        edited = False
 
-    if any(u['user_email'] == user_email for u in result):
-        result.rewind()
-        user = get_user_from_dict(result.next())
-        if sex != 'None':
-            user.sex = Sex.MALE.value if sex == 'male' else Sex.FEMALE.value
-            edited = True
-        if weight != 'None':
-            user.weight = float(weight)
-            edited = True
-        if height_m != 'None':
-            user.height_m = float(height_m)
-            user.height_cm = float(height_m) * 100
-            edited = True
-        if age != 'None':
-            user.age = int(age)
-            edited = True
-        user.activity_factor = ActivityFactor.HARD.value
-        if edited:
-            user.profile_modification_date = datetime.now()
-            user_update = {"$set": user.__dict__}
-            user_collection.update_one(user_query, user_update)
-    else:
-        return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {
-            'ContentType': 'application/json'}
+        if any(u['user_email'] == user_email for u in result):
+            result.rewind()
+            user = get_user_from_dict(result.next())
+            if sex != 'None':
+                user.sex = Sex.MALE.value if sex == 'male' else Sex.FEMALE.value
+                edited = True
+            if weight != 'None':
+                user.weight = float(weight)
+                edited = True
+            if height_m != 'None':
+                user.height_m = float(height_m)
+                user.height_cm = float(height_m) * 100
+                edited = True
+            if age != 'None':
+                user.age = int(age)
+                edited = True
+            user.activity_factor = ActivityFactor.HARD.value
+            if edited:
+                user.profile_modification_date = datetime.now()
+                user_update = {"$set": user.__dict__}
+                user_collection.update_one(user_query, user_update)
 
+    # else:
+    #     return json.dumps({'success': False, 'error_message': 'Could not find user'}), 404, {
+    #         'ContentType': 'application/json'}
+
+    thread = threading.Thread(target=update_profile)
+    thread.start()
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
@@ -156,6 +176,7 @@ def get_meal_recommendations(alexa_api_access_token, device_id, meal_type=None):
     user_email = alexa_api_service.get_user_email(alexa_api_access_token)
     user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
+    user_locale = str(request.headers['locale'])
 
     if any(u['user_email'] == user_email for u in result):
         result.rewind()
@@ -163,14 +184,17 @@ def get_meal_recommendations(alexa_api_access_token, device_id, meal_type=None):
         user = get_user_from_dict(user_dict)
         timezone_time = ''
 
+        i18n.set('filename_format', user_locale + '.json')
+        i18n.set('skip_locale_root_data', True)
+
         if meal_type is None:
             user_timezone_name = alexa_api_service.get_user_timezone(alexa_api_access_token, device_id)
             time_zone = pytz.timezone(user_timezone_name)
             timezone_time = datetime.now(time_zone).time().hour
         else:
-            if meal_type == 'breakfast':
+            if meal_type == 'breakfast' or meal_type == 'desayuno':
                 timezone_time = 7
-            elif meal_type == 'lunch':
+            elif meal_type == 'lunch' or meal_type == 'almuerzo':
                 timezone_time = 15
             else:
                 timezone_time = 20
@@ -186,11 +210,11 @@ def get_meal_recommendations(alexa_api_access_token, device_id, meal_type=None):
             meal_type = ''
 
             if int(timezone_time) < 12:
-                meal_type = 'breakfast'
+                meal_type = i18n.t("main.meal_recommendation.breakfast")
             elif 11 < int(timezone_time) < 18:
-                meal_type = 'lunch'
+                meal_type = i18n.t("main.meal_recommendation.lunch")
             else:
-                meal_type = 'dinner'
+                meal_type = i18n.t("main.meal_recommendation.dinner")
 
             return json.dumps({'success': True, 'recommendations': recommendations, 'meal_type': meal_type}), 200, {
                 'ContentType': 'application/json'}
