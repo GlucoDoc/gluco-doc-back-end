@@ -32,6 +32,8 @@ def train_model(csv_string):
     y_predictions = model.predict(X_test)
 
     print("\nAccuracy:", metrics.accuracy_score(y_test, y_predictions))
+    print("\nPrecision:", metrics.precision_score(y_test, y_predictions, average='weighted'))
+    print("\nRecall:", metrics.recall_score(y_test, y_predictions, average='weighted'))
 
     # print('\n Confusion Matrix:\n', metrics.confusion_matrix(y_test, y_predictions))
     #
