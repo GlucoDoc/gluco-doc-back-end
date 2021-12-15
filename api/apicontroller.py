@@ -36,8 +36,23 @@ os.environ['HYPOGLYCEMIA_THRESHOLD'] = "70"
 i18n.load_path.append('../i18n')
 
 
+def get_database():
+    # Provide the mongodb atlas url to connect python to mongodb using pymongo
+    CONNECTION_STRING = "mongodb+srv://glucoDoc:glucoDoc@glucodoc.f8dds.mongodb.net/GlucoDoc?retryWrites=true&w=majority"
+
+    # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
+    from pymongo import MongoClient
+    client = MongoClient(CONNECTION_STRING, ssl_cert_reqs=ssl.CERT_NONE)
+
+    # Create the database for our example (we will use the same database throughout the tutorial
+    return client['GlucoDoc']
+
+
+gluco_doc_db = get_database()
+
+
 def test():
-    gluco_doc_db = get_database()
+    # gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
     user_email = 'nativacu@gmail.com'
     user_query = {"user_email": user_email}
@@ -51,7 +66,7 @@ def test():
         for i in range(7):
             for j in range(24):
                 result = classified_model.predict([[str(i), str(j)]])
-                print('week:' + str(i) + ' hour:' + str(j) + ' prediction:' + str(result))
+                print('weekday:' + str(i) + ' hour:' + str(j) + ' prediction:' + str(result))
 
 
 @app.route('/')
@@ -71,7 +86,7 @@ def recommendation_template():
 
 @app.route('/updateUser/<string:access_token>/<string:user_id>/<string:alexa_api_access_token>')
 def update_user(access_token, user_id, alexa_api_access_token):
-    gluco_doc_db = get_database()
+    # gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
     user_locale = request.headers['locale']
 
@@ -129,7 +144,7 @@ def update_user(access_token, user_id, alexa_api_access_token):
     methods=['POST', 'GET'])
 def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age):
     def update_profile():
-        gluco_doc_db = get_database()
+        # gluco_doc_db = get_database()
         user_collection = gluco_doc_db['User']
         user_email = alexa_api_service.get_user_email(alexa_api_access_token)
         user_query = {"user_email": user_email}
@@ -167,17 +182,16 @@ def update_user_personal_data(alexa_api_access_token, sex, weight, height_m, age
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/getRecommendations/<string:alexa_api_access_token>/<string:device_id>', methods=['GET'])
-@app.route('/getRecommendations/<string:alexa_api_access_token>/<string:device_id>/<string:meal_type>', methods=['GET'])
-def get_meal_recommendations(alexa_api_access_token, device_id, meal_type=None):
-    print(meal_type)
-    gluco_doc_db = get_database()
+@app.route('/getRecommendations', methods=['GET'])
+@app.route('/getRecommendations/<string:meal_type>', methods=['GET'])
+def get_meal_recommendations(meal_type=None):
+
     user_collection = gluco_doc_db['User']
-    user_email = alexa_api_service.get_user_email(alexa_api_access_token)
+    user_email = request.headers['user_email']
     user_query = {"user_email": user_email}
     result = user_collection.find(user_query)
     user_locale = str(request.headers['locale'])
-
+    print(request.headers['user_email'])
     if any(u['user_email'] == user_email for u in result):
         result.rewind()
         user_dict = result.next()
@@ -186,9 +200,8 @@ def get_meal_recommendations(alexa_api_access_token, device_id, meal_type=None):
 
         i18n.set('filename_format', user_locale + '.json')
         i18n.set('skip_locale_root_data', True)
-        print(user_locale)
         if meal_type is None:
-            user_timezone_name = alexa_api_service.get_user_timezone(alexa_api_access_token, device_id)
+            user_timezone_name = str(request.headers['timezone'])
             time_zone = pytz.timezone(user_timezone_name)
             timezone_time = datetime.now(time_zone).time().hour
         else:
@@ -229,7 +242,7 @@ def get_meal_recommendations(alexa_api_access_token, device_id, meal_type=None):
 
 @app.route('/prediction/<string:weekday>/<string:time>/<string:alexa_api_access_token>', methods=['POST', 'GET'])
 def date_time_prediction(weekday, time, alexa_api_access_token):
-    gluco_doc_db = get_database()
+    # gluco_doc_db = get_database()
     user_collection = gluco_doc_db['User']
     user_email = alexa_api_service.get_user_email(alexa_api_access_token)
     user_query = {"user_email": user_email}
@@ -278,14 +291,15 @@ def send_notifications_params(state):
 def send_notifications(state=None):
     def notification_thread():
 
-        gluco_doc_db = get_database()
+        # gluco_doc_db = get_database()
         user_collection = gluco_doc_db['User']
         cursor = user_collection.find({})
 
         for user_dict in cursor:
 
             user = get_user_from_dict(user_dict)
-
+            i18n.set('filename_format', 'es-US' + '.json')
+            i18n.set('skip_locale_root_data', True)
             classified_model = pickle.loads(user.model)
             result = None
 
@@ -310,7 +324,7 @@ def send_notifications(state=None):
 @app.route('/sendRecommendationEmail/<string:alexa_api_access_token>/<string:meal_id>', methods=['POST', 'GET'])
 def send_recommendation_email(alexa_api_access_token, meal_id):
     def send_recommendation():
-        gluco_doc_db = get_database()
+        # gluco_doc_db = get_database()
         user_collection = gluco_doc_db['User']
         user_email = alexa_api_service.get_user_email(alexa_api_access_token)
         user_query = {"user_email": user_email}
@@ -341,18 +355,6 @@ def train_meal_model_controller():
 @app.errorhandler(BadRequest)
 def handle_bad_request(e):
     return e, 400
-
-
-def get_database():
-    # Provide the mongodb atlas url to connect python to mongodb using pymongo
-    CONNECTION_STRING = "mongodb+srv://glucoDoc:glucoDoc@glucodoc.f8dds.mongodb.net/GlucoDoc?retryWrites=true&w=majority"
-
-    # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
-    from pymongo import MongoClient
-    client = MongoClient(CONNECTION_STRING, ssl_cert_reqs=ssl.CERT_NONE)
-
-    # Create the database for our example (we will use the same database throughout the tutorial
-    return client['GlucoDoc']
 
 
 def get_user_from_dict(user_dict):

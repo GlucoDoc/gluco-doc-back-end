@@ -29,12 +29,13 @@ def get_access_token():
 
     response = requests.post(TOKEN_URI, headers=token_headers, data=json.dumps(token_params), allow_redirects=True)
 
-    logger.info("Token response status: " + format(response.status_code))
-    logger.info("Token response body  : " + format(response.text))
+    # print("Token response status: " + format(response.status_code))
+    # print("Token response body  : " + format(response.text))
 
     if response.status_code != 200:
-        logger.info("Error calling LWA!")
+        # print("Error calling LWA!")
         return None
 
     access_token = json.loads(response.text)["access_token"]
+
     return access_token

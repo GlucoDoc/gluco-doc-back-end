@@ -16,6 +16,7 @@ logger.setLevel(logging.INFO)
 
 def send_notification(user_id):
     token = get_access_token()
+
     headers = {
         "Authorization": "Bearer {}".format(token),
         "Content-Type": "application/json;charset=UTF-8"

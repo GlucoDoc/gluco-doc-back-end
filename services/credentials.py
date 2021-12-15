@@ -1,4 +1,4 @@
 key = {
-    'CLIENT_ID': 'amzn1.application-oa2-client.0c32bc0be8dc4e0d8231c82a7b05f337',
-    'CLIENT_SECRET': 'a787ecad13fa88bafe85bf3c007c8fc3447e1a4f9e0fa5528784e4e10878c5c9'
+    'CLIENT_ID': 'amzn1.application-oa2-client.d33ee790b01a474e9e02296010524a4c',
+    'CLIENT_SECRET': '84b1032dd8ea603da1716804d9b147cfc376144d36be012a19951b576465a392'
 }
